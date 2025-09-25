@@ -4,7 +4,7 @@ setup(
     name='survey',
     version='0.0.1',
     description='Survey module for Madrona Platform',
-    author='Your Name',
+    author='Ecotrust',
     author_email='ksdev@ecotrust.org',
     packages=find_packages(),
     include_package_data=True,
