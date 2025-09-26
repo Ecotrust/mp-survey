@@ -1,12 +1,61 @@
 from django.contrib import admin
+import nested_admin
+from .models import Question, SurveyQuestionOption, ScenarioQuestionOption, PlanningUnitQuestionOption, Survey, Scenario, SurveyQuestion, ScenarioQuestion, PlanningUnitQuestion, SurveyResponse
 
-# Register your models here.
+class SurveyQuestionOptionsInline(nested_admin.NestedTabularInline):
+    model = SurveyQuestionOption
+    extra = 2
+    classes = ['collapse', 'show']
 
-from .models import Question, QuestionOption, Survey, QuestionSurveyAssociation, SurveyResponse
+class ScenarioQuestionOptionsInline(nested_admin.NestedTabularInline):
+    model = ScenarioQuestionOption
+    extra = 2
+    classes = ['collapse', 'show']
 
-admin.site.register(Question)
-admin.site.register(QuestionOption)
-admin.site.register(Survey)
-admin.site.register(QuestionSurveyAssociation)
-admin.site.register(SurveyResponse)
+class PlanningUnitQuestionOptionsInline(nested_admin.NestedTabularInline):
+    model = PlanningUnitQuestionOption
+    extra = 2
+    classes = ['collapse', 'show']
 
+class SurveyQuestionsInline(nested_admin.NestedStackedInline):
+    model = SurveyQuestion
+    extra = 3
+    classes = ['collapse', 'show']
+    inlines = [SurveyQuestionOptionsInline]
+
+class ScenarioQuestionsInline(nested_admin.NestedStackedInline):
+    model = ScenarioQuestion
+    extra = 3
+    classes = ['collapse', 'show']
+    inlines = [ScenarioQuestionOptionsInline]
+
+class PlanningUnitQuestionsInline(nested_admin.NestedStackedInline):
+    model = PlanningUnitQuestion
+    extra = 3
+    classes = ['collapse', 'show']
+    inlines = [PlanningUnitQuestionOptionsInline]
+
+class ScenarioInline(nested_admin.NestedStackedInline):
+    model = Scenario
+    extra = 1
+    classes = ['collapse', 'show']
+    inlines = [ScenarioQuestionsInline, PlanningUnitQuestionsInline]
+
+class SurveyAdmin(nested_admin.NestedModelAdmin):
+    list_display = ('title', 'description', 'created_at', 'updated_at')
+    search_fields = ('name', 'description')
+    ordering = ('-created_at',)
+    inlines = [SurveyQuestionsInline, ScenarioInline]
+
+
+
+# admin.site.register(SurveyQuestion)
+# admin.site.register(Scenario)
+# admin.site.register(ScenarioQuestion)
+# admin.site.register(PlanningUnitQuestion)
+# admin.site.register(QuestionOption)
+# admin.site.register(Survey)
+# admin.site.register(QuestionSurveyAssociation)
+# admin.site.register(SurveyResponse)
+
+admin.site.register(Survey, SurveyAdmin)
