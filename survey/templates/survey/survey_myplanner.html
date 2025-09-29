@@ -1,0 +1,34 @@
+<!-- GROUP SURVEYS -->
+<div class="accordion">
+    <div>
+        <div class="accordion-group">
+            <!-- <div id="group-surveys-header" class="accordion-heading" data-bind="css: {'active': app.viewModel.isGroupSurveysOpen()}"> -->
+            <div id="group-surveys-header" class="accordion-heading">
+                <div>
+                    <!-- <a class="accordion-toggle" data-bind="click: app.viewModel.toggleGroupSurveysOpen"> -->
+                    <a class="accordion-toggle">
+                        <span>Group Surveys</span>
+                    </a>
+
+                </div>
+            </div>
+
+            <!-- <div class="accordion-body collapse" data-bind="css: {'in': app.viewModel.isGroupSurveysOpen()}"> -->
+            <div class="accordion-body collapse">
+                <!-- <div class="accordion-inner" data-bind="with: app.viewModel.userLayers"> -->
+                <div class="accordion-inner">
+                    <!-- <div data-bind="visible: !visibleLayers().length" style="font-weight: normal"> -->
+                    <div style="font-weight: normal">
+                        <div style="padding: 10px;">
+                            <p>
+                                You currently have no
+                                group surveys.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- GROUP SURVEYS -->
