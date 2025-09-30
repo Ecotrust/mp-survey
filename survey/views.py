@@ -10,4 +10,4 @@ def get_myplanner_html(request, template='survey/survey_myplanner.html'):
     return rendered
 
 def get_myplanner_css(request):
-    return ''
+    return '<link rel="stylesheet" href="/static/survey/css/survey_myplanner.css" type="text/css">'
