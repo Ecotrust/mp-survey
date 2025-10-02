@@ -55,18 +55,25 @@
                                                                 <span >{{ survey.survey.title }}</span>
                                                                 {% if survey.response %}
                                                                     {% if survey.response.completed %}
-                                                                        <button class="btn btn-success btn-sm" style="margin-left: 10px; pointer-events: none;">
+                                                                        <button 
+                                                                            class="btn btn-success btn-sm btn-open-survey"
+                                                                            onclick="continueSurvey({{ survey.response.id }})"
+                                                                        >
                                                                             Edit
                                                                         </button>
                                                                     {% else %}
-                                                                        <button class="btn btn-success btn-sm" style="margin-left: 10px; pointer-events: none;" >
+                                                                        <button 
+                                                                            class="btn btn-success btn-sm btn-open-survey" 
+                                                                            onclick="continueSurvey({{ survey.response.id }})"
+                                                                        >
                                                                             Continue
                                                                         </button>
                                                                     {% endif %}
                                                                 {% else %}
-                                                                    <button class="btn btn-success btn-sm" 
-                                                                    style="margin-left: 10px"
-                                                                    onclick="showSurveyForm({{ survey.response.id }})">
+                                                                    <button 
+                                                                        class="btn btn-success btn-sm btn-open-survey" 
+                                                                        onclick="takeNewSurvey({{ survey.survey.id }})"
+                                                                    >
                                                                         Take
                                                                     </button>
                                                                 {% endif %}

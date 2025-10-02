@@ -1,3 +1,26 @@
 #survey-planner-content {
   display: none;
 }
+
+#myplanner-survey-dialog-footer {
+  height: 150px;
+  width: 100%;
+  bottom: 0;
+  border: 1ps solid black;
+}
+
+#myplanner-survey-dialog-footer button {
+  margin: 10px;
+}
+
+#myplanner-survey-dialog-close {
+  float: left;
+}
+
+#myplanner-survey-dialog-next, #myplanner-survey-dialog-save {
+  float: right;
+}
+
+.btn-open-survey {
+  margin-left: 10px;
+}
