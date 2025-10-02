@@ -24,7 +24,7 @@
                     {% else %}
                     <div>
                         <ul class="unstyled list">
-                            {% for survey in GROUP_SURVEYS %}
+                            {% for survey in SURVEY_STATUS %}
                                 <li class="layer">
                                     <table class="layer-row">
                                         <tbody>
@@ -38,7 +38,7 @@
                                                 <!-- <td class="layer-name" data-bind="css: {isInvisible: isInvisible()}"> -->
                                                 <td class="layer-name">
                                                     <!-- <a class="btn btn-layer" data-bind="click: app.viewModel.userLayers.toggleUserLayer, attr: { id:id+&quot;_selection&quot;}" id="visualize_userlayer_200_selection"> -->
-                                                    <a class="btn btn-layer" id="survey_survey_{{ survey.id }}_selection">
+                                                    <a class="btn btn-layer" id="survey_survey_{{ survey.survey.id }}_selection">
                                                         <table>
                                                             <tbody><tr>
                                                                 <td class="text">
@@ -52,7 +52,24 @@
                                                                     </a>
 
                                                                 <!-- <span data-bind="text: name">0 0 0 2025 import</span> -->
-                                                                <span >{{ survey.title }}</span>
+                                                                <span >{{ survey.survey.title }}</span>
+                                                                {% if survey.response %}
+                                                                    {% if survey.response.completed %}
+                                                                        <button class="btn btn-success btn-sm" style="margin-left: 10px; pointer-events: none;">
+                                                                            Edit
+                                                                        </button>
+                                                                    {% else %}
+                                                                        <button class="btn btn-success btn-sm" style="margin-left: 10px; pointer-events: none;" >
+                                                                            Continue
+                                                                        </button>
+                                                                    {% endif %}
+                                                                {% else %}
+                                                                    <button class="btn btn-success btn-sm" 
+                                                                    style="margin-left: 10px"
+                                                                    onclick="showSurveyForm({{ survey.response.id }})">
+                                                                        Take
+                                                                    </button>
+                                                                {% endif %}
 
                                                                 </td>
                                                                 <td class="add-on">

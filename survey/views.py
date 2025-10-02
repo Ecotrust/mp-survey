@@ -1,5 +1,5 @@
 from django.template.loader import render_to_string
-from .models import Survey
+from .models import Survey, SurveyResponse
 from datetime import datetime
 
 def get_myplanner_js(request):
@@ -8,7 +8,8 @@ def get_myplanner_js(request):
 
 def get_myplanner_html(request, template='survey/survey_myplanner.html'):
     context = {
-        'GROUP_SURVEYS': []
+        'GROUP_SURVEYS': [],
+        'SURVEY_STATUS': []
     }
     user = request.user
     if user.is_authenticated:
@@ -17,8 +18,23 @@ def get_myplanner_html(request, template='survey/survey_myplanner.html'):
         # get surveys that are active
         surveys = Survey.objects.filter(start_date__lte=now, end_date__gte=now)
         for survey in surveys:
-            if survey.groups.filter(mapgroupmember__user=user).exists():
+            if survey.groups.filter(mapgroupmember__user=user).exists() and not survey in context['GROUP_SURVEYS']:
                 context['GROUP_SURVEYS'].append(survey)
+                if SurveyResponse.objects.filter(survey=survey, user=user).exists():
+                    for response in SurveyResponse.objects.filter(survey=survey, user=user):
+                        context['SURVEY_STATUS'].append(
+                            {
+                                'survey': survey,
+                                'response': response
+                            }
+                        )
+                else:
+                    context['SURVEY_STATUS'].append(
+                        {
+                            'survey': survey,
+                            'response': None
+                        }
+                    )
 
     if len(context['GROUP_SURVEYS']) == 0:
         return ''
@@ -27,3 +43,8 @@ def get_myplanner_html(request, template='survey/survey_myplanner.html'):
 
 def get_myplanner_css(request):
     return '<link rel="stylesheet" href="/static/survey/css/survey_myplanner.css" type="text/css">'
+
+def get_myplanner_dialog(request, template='survey/survey_myplanner_dialog.html'):
+    context = {}
+    rendered = render_to_string(template, context=context, request=request)
+    return rendered

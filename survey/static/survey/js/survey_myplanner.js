@@ -3,3 +3,13 @@ $( "#group-surveys-header" ).on( "click", function() {
       // Animation complete.
     });
 });
+
+function showSurveyForm(surveyId) {
+    app.viewModel.scenarios.externalForm(true);
+    $("#myplanner-survey-dialog").show();
+}
+
+function hideSurveyForm() {
+    app.viewModel.scenarios.externalForm(false);
+    $("#myplanner-survey-dialog").hide();
+}
