@@ -42,4 +42,16 @@ function continueSurvey(responseId){
     );
     showSurveyForm();
     // AJAX call to get form HTML
+    $.ajax({
+        url: '/survey/continue/'+responseId+'/',
+        type: 'GET',
+        success: function(data) {
+            $('#myplanner-survey-dialog-body').html(data);
+        },
+        error: function(xhr, status, error) {
+            $('#myplanner-survey-dialog-body').html(
+                '<h3>Error loading survey. Please try again later.</h3>'
+            );
+        }
+    });
 }

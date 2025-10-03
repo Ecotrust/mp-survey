@@ -79,6 +79,16 @@ def survey_start(request, surveypk):
     # return JsonResponse({'response_id': response.id, 'survey_id': survey.id, 'response_form': response.get_form(request), 'step': 1, 'steps': survey.get_step_count()})
     return get_response_form(response,request)
 
+def survey_continue(request, responsepk):
+    user = request.user
+    if not user.is_authenticated:
+        return None
+    try:
+        response = SurveyResponse.objects.get(pk=responsepk, user=user)
+    except SurveyResponse.DoesNotExist:
+        return None
+    return get_response_form(response,request)
+
 def get_response_form(response, request, template='survey/survey_response_form.html'):
     if response is None or request is None:
         return None
