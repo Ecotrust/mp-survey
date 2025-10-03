@@ -216,6 +216,14 @@ class Survey(models.Model):
 
     def __str__(self):
         return self.title
+    
+    def get_step_count(self):
+        step_count = 1  # Start with 1 for the initial info step
+        for scenario in self.scenarios_survey.all():
+            step_count += 1  # Each scenario introduction is a step
+            if scenario.is_spatial:
+                step_count += 1  # Planning unit selection step
+        return step_count
 
     class Meta:
         verbose_name = "Survey"
@@ -324,6 +332,26 @@ class SurveyResponse(models.Model):
 
     def __str__(self):
         return f"Response by {self.user} for {self.survey}"
+    
+    @property
+    def completed(self):
+        # A response is considered complete if all required questions have been answered
+        required_questions = self.survey.survey_questions_survey.filter(is_required=True)
+        for question in required_questions:
+            if not self.survey_answers_question.filter(question=question).exists():
+                return False
+        for scenario in self.survey.scenarios_survey.all():
+            required_scenario_questions = scenario.scenario_questions_scenario.filter(is_required=True)
+            for question in required_scenario_questions:
+                if not self.scenario_answers_question.filter(question=question).exists():
+                    return False
+            if scenario.is_spatial:
+                required_pu_questions = scenario.planning_unit_questions_scenario.filter(is_required=True)
+                for pu in PlanningUnit.objects.filter(family=scenario.pu_family):
+                    for question in required_pu_questions:
+                        if not self.planning_unit_answers_question.filter(question=question, planning_unit=pu).exists():
+                            return False
+        return True
     
     class Meta:
         verbose_name = "Survey Response"

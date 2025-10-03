@@ -21,6 +21,18 @@ function takeNewSurvey(surveyId){
     );
     showSurveyForm();
     // AJAX call to get form HTML
+    $.ajax({
+        url: '/survey/start/'+surveyId+'/',
+        type: 'GET',
+        success: function(data) {
+            $('#myplanner-survey-dialog-body').html(data);
+        },
+        error: function(xhr, status, error) {
+            $('#myplanner-survey-dialog-body').html(
+                '<h3>Error loading survey. Please try again later.</h3>'
+            );
+        }
+    });
 }
 
 function continueSurvey(responseId){

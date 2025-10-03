@@ -1,6 +1,8 @@
 from django.template.loader import render_to_string
 from .models import Survey, SurveyResponse
 from datetime import datetime
+# from django.http import JsonResponse
+from django.shortcuts import render
 
 def get_myplanner_js(request):
     js_tag = '<script src="/static/survey/js/survey_myplanner.js"></script>'
@@ -48,3 +50,44 @@ def get_myplanner_dialog(request, template='survey/survey_myplanner_dialog.html'
     context = {}
     rendered = render_to_string(template, context=context, request=request)
     return rendered
+
+def survey_start(request, surveypk):
+    user = request.user
+    if not user.is_authenticated:
+        return None
+    try:
+        survey = Survey.objects.get(pk=surveypk)
+    except Survey.DoesNotExist:
+        return None
+    # check if user is in any of the groups for this survey
+    if not survey.groups.filter(mapgroupmember__user=user).exists():
+        return None
+    response = None
+    responses = SurveyResponse.objects.filter(survey=survey, user=user)
+    for response_candidate in responses:
+        if hasattr(survey, 'allow_multiple_responses') and survey.allow_multiple_responses:
+            # check if there is an existing incomplete response
+            if not response_candidate.completed:
+                response = response_candidate
+                break
+        else:
+            response = response_candidate
+            break
+    # if no existing incomplete response, create a new one
+    if response is None:
+        response = SurveyResponse.objects.create(survey=survey, user=user)
+    # return JsonResponse({'response_id': response.id, 'survey_id': survey.id, 'response_form': response.get_form(request), 'step': 1, 'steps': survey.get_step_count()})
+    return get_response_form(response,request)
+
+def get_response_form(response, request, template='survey/survey_response_form.html'):
+    if response is None or request is None:
+        return None
+    context = {
+        'response': response,
+        'survey': response.survey,
+        # 'scenarios': self.survey.scenarios_survey.all(),
+        'questions': response.survey.survey_questions_survey.all(),
+        'user': response.user,
+    }
+    return render(request, template, context)
+    
