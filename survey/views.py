@@ -3,6 +3,7 @@ from .models import Survey, SurveyResponse
 from datetime import datetime
 # from django.http import JsonResponse
 from django.shortcuts import render
+from .forms import SurveyResponseForm
 
 def get_myplanner_js(request):
     js_tag = '<script src="/static/survey/js/survey_myplanner.js"></script>'
@@ -98,6 +99,7 @@ def get_response_form(response, request, template='survey/survey_response_form.h
         # 'scenarios': self.survey.scenarios_survey.all(),
         'questions': response.survey.survey_questions_survey.all(),
         'user': response.user,
+        'form': SurveyResponseForm(survey=response.survey, instance=response)
     }
     return render(request, template, context)
     

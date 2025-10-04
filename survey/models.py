@@ -80,6 +80,12 @@ class Question(models.Model):
         default=False,
         help_text="Check if an 'Other' option should be provided for multiple choice questions."
     )
+    help_text = models.CharField(
+        max_length=1024,
+        blank=True,
+        null=True,
+        help_text="Additional help text for the question."
+    )
 
     def __str__(self):
         return self.text
@@ -89,6 +95,11 @@ class Question(models.Model):
         verbose_name_plural = "Questions"
         abstract = True
 
+def get_question_choices(question, options_model):
+    if not question.question_type in ['single_choice', 'multiple_choice']:
+        return None
+    return [(option.value, option.text) for option in options_model.objects.filter(question=question).order_by('order')]
+
 class SurveyQuestion(Question):
     survey = models.ForeignKey(
         'Survey',
@@ -96,6 +107,9 @@ class SurveyQuestion(Question):
         related_name='survey_questions_survey',
         help_text="The survey this question belongs to."
     )
+
+    def get_choices(self):
+        return get_question_choices(self, SurveyQuestionOption)
 
     class Meta:
         verbose_name = "Survey Question"
@@ -109,6 +123,9 @@ class ScenarioQuestion(Question):
         related_name='scenario_questions_scenario',
         help_text="The scenario this question belongs to."
     )
+
+    def get_choices(self):
+        return get_question_choices(self, ScenarioQuestionOption)
 
     class Meta:
         verbose_name = "Scenario Question"
@@ -129,6 +146,9 @@ class PlanningUnitQuestion(Question):
         help_text="The scenario this question belongs to."
     )
 
+    def get_choices(self):
+        return get_question_choices(self, PlanningUnitQuestionOption)
+    
     class Meta:
         verbose_name = "Planning Unit Question"
         verbose_name_plural = "Planning Unit Questions"
@@ -358,6 +378,20 @@ class SurveyResponse(models.Model):
         verbose_name_plural = "Survey Responses"
         unique_together = ('survey', 'user')
 
+def get_answer_value(answer):
+    if answer is None:
+        return None
+    if answer.question.question_type == 'text' and answer.text_answer is not None:
+        return answer.text_answer
+    elif answer.question.question_type == 'number' and answer.numeric_answer is not None:
+        return answer.numeric_answer
+    elif answer.question.question_type in ['choice', 'multichoice'] and answer.selected_options:
+        return answer.selected_options
+    elif answer.question.question_type == 'text' and answer.other_text_answer:
+        return answer.other_text_answer
+    else:
+        return None
+
 class Answer(models.Model):
     response = models.ForeignKey(
         SurveyResponse,
@@ -409,6 +443,10 @@ class Answer(models.Model):
     #     help_text="Media file answer (image, audio, video)."
     # )
 
+    @property
+    def value(self):
+        return get_answer_value(self)
+
     def __str__(self):
         return f"Answer to {self.question} in response {self.response.id}"
 
@@ -416,6 +454,8 @@ class Answer(models.Model):
         verbose_name = "Answer"
         verbose_name_plural = "Answers"
         abstract = True
+
+
 
 class SurveyAnswer(Answer):
     question = models.ForeignKey(
