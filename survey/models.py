@@ -2,12 +2,10 @@ from django.db import models
 from django.contrib.gis.db.models import PolygonField
 from django.conf import settings
 
-# Create your models here.
 class QuestionOption(models.Model):
     text = models.CharField(max_length=255)
-    value = models.IntegerField(help_text="Numeric value associated with this option.")
     order = models.PositiveIntegerField(help_text="Order of the option in the list.")
-    
+
     def __str__(self):
         return self.text
 
@@ -27,7 +25,6 @@ class SurveyQuestionOption(QuestionOption):
         verbose_name = "Survey Question Option"
         verbose_name_plural = "Survey Question Options"
         ordering = ['order']
-        unique_together = ('question', 'value')
 
 class ScenarioQuestionOption(QuestionOption):
     question = models.ForeignKey(
@@ -98,7 +95,7 @@ class Question(models.Model):
 def get_question_choices(question, options_model):
     if not question.question_type in ['single_choice', 'multiple_choice']:
         return None
-    return [(option.value, option.text) for option in options_model.objects.filter(question=question).order_by('order')]
+    return [(option.id, option.text) for option in options_model.objects.filter(question=question).order_by('order')]
 
 class SurveyQuestion(Question):
     survey = models.ForeignKey(
@@ -153,30 +150,6 @@ class PlanningUnitQuestion(Question):
         verbose_name = "Planning Unit Question"
         verbose_name_plural = "Planning Unit Questions"
         ordering = ['order']
-
-# class QuestionSurveyAssociation(models.Model):
-#     question = models.ForeignKey(
-#         'Question',
-#         on_delete=models.CASCADE,
-#         related_name='survey_associations_question',
-#         help_text="The question associated with the survey."
-#     )
-#     survey = models.ForeignKey(
-#         'Survey',
-#         on_delete=models.CASCADE,
-#         related_name='question_associations_survey',
-#         help_text="The survey this question is associated with."
-#     )
-#     order = models.PositiveIntegerField(
-#         help_text="Order of the question in the survey."
-#     )
-
-#     class Meta:
-#         unique_together = ('question', 'survey')
-#         ordering = ['order']
-
-#     def __str__(self):
-#         return f"{self.question} in {self.survey} at position {self.order}"
 
 class PlanningUnitFamily(models.Model):
         name = models.CharField(max_length=255)
@@ -385,8 +358,8 @@ def get_answer_value(answer):
         return answer.text_answer
     elif answer.question.question_type == 'number' and answer.numeric_answer is not None:
         return answer.numeric_answer
-    elif answer.question.question_type in ['choice', 'multichoice'] and answer.selected_options:
-        return answer.selected_options
+    elif answer.question.question_type in ['single_choice', 'multiple_choice'] and answer.selected_options:
+        return [(x['option_id'], x['text']) for x in answer.selected_options]
     elif answer.question.question_type == 'text' and answer.other_text_answer:
         return answer.other_text_answer
     else:
@@ -454,8 +427,6 @@ class Answer(models.Model):
         verbose_name = "Answer"
         verbose_name_plural = "Answers"
         abstract = True
-
-
 
 class SurveyAnswer(Answer):
     question = models.ForeignKey(

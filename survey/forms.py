@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import ModelForm
-from .models import SurveyResponse, SurveyQuestion, SurveyAnswer
+from .models import SurveyResponse, SurveyQuestion, SurveyAnswer, SurveyQuestionOption
 
 
 class SurveyResponseForm(ModelForm):
@@ -60,7 +60,6 @@ class SurveyResponseForm(ModelForm):
                 #       {"option_id": 1, "text": "Option 1"}, 
                 #       {"option_id": 2, "text": "Option 2"}
                 #   ]
-                ### I think this translation is best performed in forms.py.
                 elif question.question_type == 'single_choice':
                     # TODO: calculate appropriate format of 'initial_answer'
                     choices = question.get_choices()
@@ -69,6 +68,7 @@ class SurveyResponseForm(ModelForm):
                         label=question.text,
                         required=question.is_required,
                         choices=choices,
+                        initial=initial_answer[0] if initial_answer else None,
                         widget=forms.Select(attrs={'class': 'form-control'})
                     )
                 elif question.question_type == 'multiple_choice':
@@ -79,6 +79,7 @@ class SurveyResponseForm(ModelForm):
                         label=question.text,
                         required=question.is_required,
                         choices=choices,
+                        initial=[opt[0] for opt in initial_answer] if initial_answer else [],
                         widget=forms.CheckboxSelectMultiple()
                     )
                 # elif question.question_type == 'boolean':
@@ -108,26 +109,36 @@ class SurveyResponseForm(ModelForm):
             field_name = f'question_{question.id}'
             if field_name in self.cleaned_data:
                 answer_value = self.cleaned_data[field_name]
-                
-                # Handle different data types
-                if question.question_type == 'multichoice':
-                    if isinstance(answer_value, list):
-                        answer_value = '\n'.join(answer_value)
-                elif question.question_type == 'boolean':
-                    answer_value = str(answer_value)
-                elif question.question_type == 'date':
-                    if answer_value:
-                        answer_value = answer_value.isoformat()
-                
-                # Create or update the answer
                 answer, created = SurveyAnswer.objects.get_or_create(
                     response=survey_response,
                     question=question,
-                    defaults={'answer': str(answer_value) if answer_value is not None else ''}
                 )
                 
-                if not created:
-                    answer.answer = str(answer_value) if answer_value is not None else ''
-                    answer.save()
+                # Handle different data types
+                if question.question_type == 'text':
+                    answer.text_answer = answer_value
+                elif question.question_type == 'number':
+                    answer.numeric_answer = int(answer_value)
+                    answer.text_answer = str(answer_value)
+                elif question.question_type == 'single_choice':
+                    # answer_value is the option_id
+                    answer_choice = SurveyQuestionOption.objects.filter(id=answer_value, question=question).first()
+                    if answer_choice:
+                        answer.selected_options = [{"option_id": answer_choice.id, "text": answer_choice.text}]
+                        answer.text_answer = answer_choice.text
+                elif question.question_type == 'multiple_choice':
+                    # answer_value is a list of option_ids
+                    answer.selected_options = []
+                    for option_id in answer_value:
+                        answer_choice = SurveyQuestionOption.objects.filter(id=int(option_id), question=question).first()
+                        if answer_choice:
+                            answer.selected_options.append({"option_id": answer_choice.id, "text": answer_choice.text})
+                # elif question.question_type == 'boolean':
+                #     answer_value = str(answer_value)
+                # elif question.question_type == 'date':
+                #     if answer_value:
+                #         answer_value = answer_value.isoformat()
+
+                answer.save()
         
         return survey_response

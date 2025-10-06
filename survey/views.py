@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.template.loader import render_to_string
 from .models import Survey, SurveyResponse
 from datetime import datetime
@@ -52,6 +53,38 @@ def get_myplanner_dialog(request, template='survey/survey_myplanner_dialog.html'
     rendered = render_to_string(template, context=context, request=request)
     return rendered
 
+def save_survey_response(request, response):
+    error_message = 'There were errors in the form.'
+    if request.method == 'POST':
+        form = SurveyResponseForm(request.POST, survey=response.survey, instance=response)
+        if form.is_valid():
+            try:
+                form.save_answers(response, response.survey)
+                try:
+                    response.save()
+                
+                    return {
+                        'status': 'success',
+                        'status_code': 200,
+                        'message': 'Survey response saved successfully.',
+                        'response_id': response.id,
+                        'survey_id': response.survey.id
+                    }
+                except Exception as e:
+                    error_message = 'Error saving survey response.'
+                    pass
+            except Exception as e:
+                error_message = 'Error saving answers.'
+                pass
+    else:
+        error_message = 'Invalid request method. Only POST requests are allowed.'
+    return {
+        'status': 'error',
+        'status_code': 400,
+        'message': error_message,
+        'errors': form.errors
+    }
+
 def survey_start(request, surveypk):
     user = request.user
     if not user.is_authenticated:
@@ -78,6 +111,9 @@ def survey_start(request, surveypk):
     if response is None:
         response = SurveyResponse.objects.create(survey=survey, user=user)
     # return JsonResponse({'response_id': response.id, 'survey_id': survey.id, 'response_form': response.get_form(request), 'step': 1, 'steps': survey.get_step_count()})
+    if request.method == 'POST':
+        context = save_survey_response(request, response)
+        return HttpResponse(context)
     return get_response_form(response,request)
 
 def survey_continue(request, responsepk):
@@ -88,6 +124,9 @@ def survey_continue(request, responsepk):
         response = SurveyResponse.objects.get(pk=responsepk, user=user)
     except SurveyResponse.DoesNotExist:
         return None
+    if request.method == 'POST':
+        context = save_survey_response(request, response)
+        return HttpResponse(context)
     return get_response_form(response,request)
 
 def get_response_form(response, request, template='survey/survey_response_form.html'):
