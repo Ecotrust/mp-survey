@@ -115,7 +115,7 @@ def survey_start(request, surveypk, responsepk=None):
             return None
         # ??? If responsepk is None???:
         if survey.allow_multiple_responses or existing_responses.count() == 0:
-            response = 
+            response = None
         # check if user is in any of the groups for this survey
         response = None
     responses = SurveyResponse.objects.filter(survey=survey, user=user)
