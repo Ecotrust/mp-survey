@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.gis.db.models import PolygonField
+from django.contrib.gis.db.models import MultiPolygonField
 from django.conf import settings
 
 # Create your models here.
@@ -175,7 +175,7 @@ class PlanningUnitFamily(models.Model):
             verbose_name_plural = "Planning Unit Families"
 
 class PlanningUnit(models.Model):
-    geometry = PolygonField(
+    geometry = MultiPolygonField(
         srid=settings.SERVER_SRID,
         blank=True,
         null=True,
@@ -244,7 +244,7 @@ class Scenario(models.Model):
         default=False,
         help_text="Check if this survey uses user drawings rather than pre-defined planning units."
     )
-    study_bounds = PolygonField(
+    study_bounds = MultiPolygonField(
         srid=settings.SERVER_SRID,
         blank=True,
         null=True,
