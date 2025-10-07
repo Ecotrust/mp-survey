@@ -193,6 +193,10 @@ class Survey(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     start_date = models.DateTimeField(blank=True, null=True)
     end_date = models.DateTimeField(blank=True, null=True)
+    allow_multiple_responses = models.BooleanField(
+        default=False,
+        help_text="Check if users can submit multiple responses to this survey."
+    )
     groups = models.ManyToManyField(
         'mapgroups.MapGroup',
         blank=True,

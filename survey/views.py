@@ -85,18 +85,39 @@ def save_survey_response(request, response):
         'errors': form.errors
     }
 
-def survey_start(request, surveypk):
+def survey_start(request, surveypk, responsepk=None):
     user = request.user
     if not user.is_authenticated:
+        # TODO: Return error
         return None
-    try:
-        survey = Survey.objects.get(pk=surveypk)
-    except Survey.DoesNotExist:
-        return None
-    # check if user is in any of the groups for this survey
-    if not survey.groups.filter(mapgroupmember__user=user).exists():
-        return None
-    response = None
+    if not responsepk is None:
+        try:
+            response = SurveyResponse.objects.get(pk=responsepk, user=user)
+            if response.survey.pk != int(surveypk):
+                # TODO: Return error
+                return None
+            survey = response.survey
+        except SurveyResponse.DoesNotExist:
+            # TODO: Return error
+            return None
+    else:
+        survey = None
+        response = None
+    if survey is None:
+        try:
+            survey = Survey.objects.get(pk=surveypk)
+        except Survey.DoesNotExist:
+            # TODO: Return error
+            return None
+        existing_responses = SurveyResponse.objects.filter(survey=survey, user=user)
+        if not survey.groups.filter(mapgroupmember__user=user).exists():
+            # TODO: Return error
+            return None
+        # ??? If responsepk is None???:
+        if survey.allow_multiple_responses or existing_responses.count() == 0:
+            response = 
+        # check if user is in any of the groups for this survey
+        response = None
     responses = SurveyResponse.objects.filter(survey=survey, user=user)
     for response_candidate in responses:
         if hasattr(survey, 'allow_multiple_responses') and survey.allow_multiple_responses:
@@ -117,13 +138,13 @@ def survey_start(request, surveypk):
     return get_response_form(response,request)
 
 def survey_continue(request, responsepk):
-    user = request.user
-    if not user.is_authenticated:
-        return None
-    try:
-        response = SurveyResponse.objects.get(pk=responsepk, user=user)
-    except SurveyResponse.DoesNotExist:
-        return None
+    # user = request.user
+    # if not user.is_authenticated:
+    #     return None
+    # try:
+    #     response = SurveyResponse.objects.get(pk=responsepk, user=user)
+    # except SurveyResponse.DoesNotExist:
+    #     return None
     if request.method == 'POST':
         context = save_survey_response(request, response)
         return HttpResponse(context)

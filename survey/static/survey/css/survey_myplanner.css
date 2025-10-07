@@ -21,6 +21,15 @@
   float: right;
 }
 
+#myplanner-survey-dialog-body {
+  margin: 2rem;
+  margin-top: 0.5rem;
+}
+
+small.form-text.text-muted {
+  color: #6c757d;
+}
+
 .btn-open-survey {
   margin-left: 10px;
 }
