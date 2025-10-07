@@ -1,13 +1,14 @@
 from django.db import models
-from django.contrib.gis.db.models import PolygonField
+from django.contrib.gis.db.models import PolygonField, MultiPolygonField
 from django.conf import settings
+
 
 # Create your models here.
 class QuestionOption(models.Model):
     text = models.CharField(max_length=255)
     value = models.IntegerField(help_text="Numeric value associated with this option.")
     order = models.PositiveIntegerField(help_text="Order of the option in the list.")
-    
+
     def __str__(self):
         return self.text
 
@@ -16,55 +17,64 @@ class QuestionOption(models.Model):
         verbose_name_plural = "Question Options"
         abstract = True
 
+
 class SurveyQuestionOption(QuestionOption):
     question = models.ForeignKey(
-        'SurveyQuestion',
+        "SurveyQuestion",
         on_delete=models.CASCADE,
-        related_name='survey_question_options_question',
-        help_text="The survey question this option belongs to."
+        related_name="survey_question_options_question",
+        help_text="The survey question this option belongs to.",
     )
+
     class Meta:
         verbose_name = "Survey Question Option"
         verbose_name_plural = "Survey Question Options"
-        ordering = ['order']
-        unique_together = ('question', 'value')
+        ordering = ["order"]
+        unique_together = ("question", "value")
+
 
 class ScenarioQuestionOption(QuestionOption):
     question = models.ForeignKey(
-        'ScenarioQuestion',
+        "ScenarioQuestion",
         on_delete=models.CASCADE,
-        related_name='scenario_question_options_question',
-        help_text="The scenario question this option belongs to."
+        related_name="scenario_question_options_question",
+        help_text="The scenario question this option belongs to.",
     )
+
     class Meta:
         verbose_name = "Scenario Question Option"
         verbose_name_plural = "Scenario Question Options"
-        ordering = ['order']
+        ordering = ["order"]
+
 
 class PlanningUnitQuestionOption(QuestionOption):
     question = models.ForeignKey(
-        'PlanningUnitQuestion',
+        "PlanningUnitQuestion",
         on_delete=models.CASCADE,
-        related_name='planning_unit_question_options_question',
-        help_text="The planning unit question this option belongs to."
+        related_name="planning_unit_question_options_question",
+        help_text="The planning unit question this option belongs to.",
     )
+
     class Meta:
         verbose_name = "Planning Unit Question Option"
         verbose_name_plural = "Planning Unit Question Options"
-        ordering = ['order']
+        ordering = ["order"]
+
 
 class Question(models.Model):
     text = models.CharField(max_length=1024)
-    order = models.PositiveIntegerField(help_text="Order of the question in the survey.")
+    order = models.PositiveIntegerField(
+        help_text="Order of the question in the survey."
+    )
     question_type = models.CharField(
         max_length=50,
         choices=[
-            ('multiple_choice', 'Multiple Choice'),
-            ('single_choice', 'Single Choice'),
-            ('text', 'Text'),
-            ('number', 'Number'),
+            ("multiple_choice", "Multiple Choice"),
+            ("single_choice", "Single Choice"),
+            ("text", "Text"),
+            ("number", "Number"),
         ],
-        help_text="Type of the question."
+        help_text="Type of the question.",
     )
     # options = models.ManyToManyField(
     #     QuestionOption,
@@ -73,12 +83,11 @@ class Question(models.Model):
     #     help_text="Options for multiple choice or single choice questions."
     # )
     is_required = models.BooleanField(
-        default=False,
-        help_text="Check if this question is required."
+        default=False, help_text="Check if this question is required."
     )
     collect_other = models.BooleanField(
         default=False,
-        help_text="Check if an 'Other' option should be provided for multiple choice questions."
+        help_text="Check if an 'Other' option should be provided for multiple choice questions.",
     )
 
     def __str__(self):
@@ -89,31 +98,34 @@ class Question(models.Model):
         verbose_name_plural = "Questions"
         abstract = True
 
+
 class SurveyQuestion(Question):
     survey = models.ForeignKey(
-        'Survey',
+        "Survey",
         on_delete=models.CASCADE,
-        related_name='survey_questions_survey',
-        help_text="The survey this question belongs to."
+        related_name="survey_questions_survey",
+        help_text="The survey this question belongs to.",
     )
 
     class Meta:
         verbose_name = "Survey Question"
         verbose_name_plural = "Survey Questions"
-        ordering = ['order']
+        ordering = ["order"]
+
 
 class ScenarioQuestion(Question):
     scenario = models.ForeignKey(
-        'Scenario',
+        "Scenario",
         on_delete=models.CASCADE,
-        related_name='scenario_questions_scenario',
-        help_text="The scenario this question belongs to."
+        related_name="scenario_questions_scenario",
+        help_text="The scenario this question belongs to.",
     )
 
     class Meta:
         verbose_name = "Scenario Question"
         verbose_name_plural = "Scenario Questions"
-        ordering = ['order']
+        ordering = ["order"]
+
 
 class PlanningUnitQuestion(Question):
     # planning_unit = models.ForeignKey(
@@ -123,16 +135,17 @@ class PlanningUnitQuestion(Question):
     #     help_text="The planning unit this question belongs to."
     # )
     scenario = models.ForeignKey(
-        'Scenario',
+        "Scenario",
         on_delete=models.CASCADE,
-        related_name='planning_unit_questions_scenario',
-        help_text="The scenario this question belongs to."
+        related_name="planning_unit_questions_scenario",
+        help_text="The scenario this question belongs to.",
     )
 
     class Meta:
         verbose_name = "Planning Unit Question"
         verbose_name_plural = "Planning Unit Questions"
-        ordering = ['order']
+        ordering = ["order"]
+
 
 # class QuestionSurveyAssociation(models.Model):
 #     question = models.ForeignKey(
@@ -158,40 +171,45 @@ class PlanningUnitQuestion(Question):
 #     def __str__(self):
 #         return f"{self.question} in {self.survey} at position {self.order}"
 
+
 class PlanningUnitFamily(models.Model):
-        name = models.CharField(max_length=255)
-        description = models.TextField(blank=True, null=True)
-        remote_raster = models.URLField(
-            blank=True,
-            null=True,
-            help_text="URL to a remote raster layer for this planning unit family. Leave blank to use local vector layer."
-        )
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    remote_raster = models.URLField(
+        blank=True,
+        null=True,
+        help_text="URL to a remote raster layer for this planning unit family. Leave blank to use local vector layer.",
+    )
 
-        def __str__(self):
-            return self.name
+    def __str__(self):
+        return self.name
 
-        class Meta:
-            verbose_name = "Planning Unit Family"
-            verbose_name_plural = "Planning Unit Families"
+    class Meta:
+        verbose_name = "Planning Unit Family"
+        verbose_name_plural = "Planning Unit Families"
+
 
 class PlanningUnit(models.Model):
-    geometry = PolygonField(
+    geometry = MultiPolygonField(
         srid=settings.SERVER_SRID,
         blank=True,
         null=True,
-        help_text="Geometry of the planning unit."
+        help_text="Geometry of the planning unit.",
     )
     family = models.ManyToManyField(
         PlanningUnitFamily,
-        related_name='planning_units_family',
-        help_text="Select the Planning Unit Families this planning unit belongs to."
+        related_name="planning_units_family",
+        help_text="Select the Planning Unit Families this planning unit belongs to.",
     )
-    
+    # attributes = models.JSONField(default=dict, blank=True)
+
     def __str__(self):
         return f"Planning Unit {self.id}"
+
     class Meta:
         verbose_name = "Planning Unit"
         verbose_name_plural = "Planning Units"
+
 
 class Survey(models.Model):
     title = models.CharField(max_length=255)
@@ -201,10 +219,10 @@ class Survey(models.Model):
     start_date = models.DateTimeField(blank=True, null=True)
     end_date = models.DateTimeField(blank=True, null=True)
     groups = models.ManyToManyField(
-        'mapgroups.MapGroup',
+        "mapgroups.MapGroup",
         blank=True,
-        related_name='surveys_groups',
-        help_text="Select groups that can access this survey."
+        related_name="surveys_groups",
+        help_text="Select groups that can access this survey.",
     )
     # questions = models.ManyToManyField(
     #     Question,
@@ -221,6 +239,7 @@ class Survey(models.Model):
         verbose_name = "Survey"
         verbose_name_plural = "Surveys"
 
+
 class Scenario(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
@@ -229,59 +248,57 @@ class Scenario(models.Model):
     survey = models.ForeignKey(
         Survey,
         on_delete=models.CASCADE,
-        related_name='scenarios_survey',
-        help_text="The survey this scenario belongs to."
+        related_name="scenarios_survey",
+        help_text="The survey this scenario belongs to.",
     )
     pu_family = models.ForeignKey(
         PlanningUnitFamily,
         on_delete=models.CASCADE,
-        related_name='surveys_pu_family',
+        related_name="surveys_pu_family",
         blank=True,
         null=True,
-        help_text="Select the Planning Unit Family this survey belongs to."
+        help_text="Select the Planning Unit Family this survey belongs to.",
     )
     user_defined_pus = models.BooleanField(
         default=False,
-        help_text="Check if this survey uses user drawings rather than pre-defined planning units."
+        help_text="Check if this survey uses user drawings rather than pre-defined planning units.",
     )
     study_bounds = PolygonField(
         srid=settings.SERVER_SRID,
         blank=True,
         null=True,
-        help_text="Define the study area for this survey."
+        help_text="Define the study area for this survey.",
     )
     selection_snapping = models.CharField(
         max_length=50,
         choices=[
-            ('default', 'Default'),
-            ('intersects', 'Intersection'),
-            ('is_within', 'Is Within'),
+            ("default", "Default"),
+            ("intersects", "Intersection"),
+            ("is_within", "Is Within"),
         ],
-        help_text="Select the snapping behavior for planning unit selection."
+        help_text="Select the snapping behavior for planning unit selection.",
     )
     is_spatial = models.BooleanField(
-        default=True,
-        help_text="Check if user will enter spatial data."
+        default=True, help_text="Check if user will enter spatial data."
     )
     is_weighted = models.BooleanField(
-        default=True,
-        help_text="Check if user will assign coins to answers."
+        default=True, help_text="Check if user will assign coins to answers."
     )
     total_coins = models.IntegerField(
         default=100,
-        help_text="Total number of coins available to users for weighting selections."
+        help_text="Total number of coins available to users for weighting selections.",
     )
     require_all_coins_used = models.BooleanField(
         default=True,
-        help_text="Check if users must use all coins when weighting selections."
+        help_text="Check if users must use all coins when weighting selections.",
     )
     min_coins_per_pu = models.IntegerField(
         default=1,
-        help_text="Minimum number of coins that must be assigned to each planning unit."
+        help_text="Minimum number of coins that must be assigned to each planning unit.",
     )
     max_coins_per_pu = models.IntegerField(
         default=100,
-        help_text="Maximum number of coins that can be assigned to each planning unit."
+        help_text="Maximum number of coins that can be assigned to each planning unit.",
     )
     # scenario_questions = models.ManyToManyField(
     #     ScenarioQuestion,
@@ -303,18 +320,19 @@ class Scenario(models.Model):
         verbose_name = "Scenario"
         verbose_name_plural = "Scenarios"
 
+
 class SurveyResponse(models.Model):
     survey = models.ForeignKey(
         Survey,
         on_delete=models.CASCADE,
-        related_name='survey_responses_survey',
-        help_text="The survey this response belongs to."
+        related_name="survey_responses_survey",
+        help_text="The survey this response belongs to.",
     )
     user = models.ForeignKey(
-        'auth.User',
+        "auth.User",
         on_delete=models.CASCADE,
-        related_name='survey_responses_user',
-        help_text="The user who submitted this response."
+        related_name="survey_responses_user",
+        help_text="The user who submitted this response.",
     )
     submitted_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -324,18 +342,19 @@ class SurveyResponse(models.Model):
 
     def __str__(self):
         return f"Response by {self.user} for {self.survey}"
-    
+
     class Meta:
         verbose_name = "Survey Response"
         verbose_name_plural = "Survey Responses"
-        unique_together = ('survey', 'user')
+        unique_together = ("survey", "user")
+
 
 class Answer(models.Model):
     response = models.ForeignKey(
         SurveyResponse,
         on_delete=models.CASCADE,
-        related_name='%(class)s_response',
-        help_text="The survey response this answer belongs to."
+        related_name="%(class)s_response",
+        help_text="The survey response this answer belongs to.",
     )
     # question = models.ForeignKey(
     #     Question,
@@ -346,7 +365,7 @@ class Answer(models.Model):
     selected_options = models.JSONField(
         blank=True,
         null=True,
-        help_text="Selected options for multiple choice or single choice questions."
+        help_text="Selected options for multiple choice or single choice questions.",
     )
     # selected_options = models.ManyToManyField(
     #     QuestionOption,
@@ -355,19 +374,13 @@ class Answer(models.Model):
     #     help_text="Selected options for multiple choice or single choice questions."
     # )
     other_text_answer = models.TextField(
-        blank=True,
-        null=True,
-        help_text="'Other' answer for multiple choice questions."
+        blank=True, null=True, help_text="'Other' answer for multiple choice questions."
     )
     text_answer = models.TextField(
-        blank=True,
-        null=True,
-        help_text="Text answer for text questions."
+        blank=True, null=True, help_text="Text answer for text questions."
     )
     numeric_answer = models.FloatField(
-        blank=True,
-        null=True,
-        help_text="Numeric answer for number questions."
+        blank=True, null=True, help_text="Numeric answer for number questions."
     )
     # boolean_answer = models.NullBooleanField(
     #     blank=True,
@@ -389,74 +402,77 @@ class Answer(models.Model):
         verbose_name_plural = "Answers"
         abstract = True
 
+
 class SurveyAnswer(Answer):
     question = models.ForeignKey(
         SurveyQuestion,
         on_delete=models.CASCADE,
-        related_name='survey_answers_question',
-        help_text="The survey question this answer corresponds to."
+        related_name="survey_answers_question",
+        help_text="The survey question this answer corresponds to.",
     )
-    
+
     class Meta:
         verbose_name = "Survey Answer"
         verbose_name_plural = "Survey Answers"
+
 
 class ScenarioAnswer(Answer):
     question = models.ForeignKey(
         ScenarioQuestion,
         on_delete=models.CASCADE,
-        related_name='scenario_answers_question',
-        help_text="The scenario question this answer corresponds to."
+        related_name="scenario_answers_question",
+        help_text="The scenario question this answer corresponds to.",
     )
-    
+
     class Meta:
         verbose_name = "Scenario Answer"
         verbose_name_plural = "Scenario Answers"
+
 
 class PlanningUnitAnswer(Answer):
     question = models.ForeignKey(
         PlanningUnitQuestion,
         on_delete=models.CASCADE,
-        related_name='planning_unit_answers_question',
-        help_text="The planning unit question this answer corresponds to."
+        related_name="planning_unit_answers_question",
+        help_text="The planning unit question this answer corresponds to.",
     )
     planning_unit = models.ForeignKey(
         PlanningUnit,
         on_delete=models.CASCADE,
-        related_name='planning_unit_answers_planning_unit',
-        help_text="The planning unit this answer is associated with."
+        related_name="planning_unit_answers_planning_unit",
+        help_text="The planning unit this answer is associated with.",
     )
     # coins_assigned = models.IntegerField(
     #     default=0,
     #     help_text="Number of coins assigned to this planning unit."
     # )
-    
+
     class Meta:
         verbose_name = "Planning Unit Answer"
         verbose_name_plural = "Planning Unit Answers"
+
 
 class CoinAssignment(models.Model):
     response = models.ForeignKey(
         SurveyResponse,
         on_delete=models.CASCADE,
-        related_name='coin_assignments_response',
-        help_text="The survey response this coin assignment belongs to."
+        related_name="coin_assignments_response",
+        help_text="The survey response this coin assignment belongs to.",
     )
     scenario = models.ForeignKey(
         Scenario,
         on_delete=models.CASCADE,
-        related_name='coin_assignments_scenario',
-        help_text="The scenario this coin assignment is associated with."
+        related_name="coin_assignments_scenario",
+        help_text="The scenario this coin assignment is associated with.",
     )
     planning_unit = models.ForeignKey(
         PlanningUnit,
         on_delete=models.CASCADE,
-        related_name='coin_assignments_planning_unit',
-        help_text="The planning unit this coin assignment is associated with."
+        related_name="coin_assignments_planning_unit",
+        help_text="The planning unit this coin assignment is associated with.",
     )
     coins_assigned = models.IntegerField(
-        default=0,
-        help_text="Number of coins assigned to this planning unit."
+        default=0, help_text="Number of coins assigned to this planning unit."
     )
 
     def __str__(self):
@@ -465,4 +481,4 @@ class CoinAssignment(models.Model):
     class Meta:
         verbose_name = "Coin Assignment"
         verbose_name_plural = "Coin Assignments"
-        unique_together = ('response', 'scenario', 'planning_unit')
+        unique_together = ("response", "scenario", "planning_unit")

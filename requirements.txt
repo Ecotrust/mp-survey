@@ -1,0 +1,12 @@
+django
+django-nested-admin
+djangorestframework
+psycopg2-binary
+python-dotenv
+
+# Geospatial libraries
+numpy
+GDAL==3.8.4
+
+# Jupyter notebook
+jupyter

@@ -12,263 +12,830 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('mapgroups', '0008_auto_20211216_1650'),
+        ("mapgroups", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='PlanningUnit',
+            name="PlanningUnit",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('geometry', django.contrib.gis.db.models.fields.PolygonField(blank=True, help_text='Geometry of the planning unit.', null=True, srid=4326)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "geometry",
+                    django.contrib.gis.db.models.fields.MultiPolygonField(
+                        blank=True,
+                        help_text="Geometry of the planning unit.",
+                        null=True,
+                        srid=4326,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Planning Unit',
-                'verbose_name_plural': 'Planning Units',
+                "verbose_name": "Planning Unit",
+                "verbose_name_plural": "Planning Units",
             },
         ),
         migrations.CreateModel(
-            name='PlanningUnitFamily',
+            name="PlanningUnitFamily",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('remote_raster', models.URLField(blank=True, help_text='URL to a remote raster layer for this planning unit family. Leave blank to use local vector layer.', null=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True, null=True)),
+                (
+                    "remote_raster",
+                    models.URLField(
+                        blank=True,
+                        help_text="URL to a remote raster layer for this planning unit family. Leave blank to use local vector layer.",
+                        null=True,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Planning Unit Family',
-                'verbose_name_plural': 'Planning Unit Families',
+                "verbose_name": "Planning Unit Family",
+                "verbose_name_plural": "Planning Unit Families",
             },
         ),
         migrations.CreateModel(
-            name='PlanningUnitQuestion',
+            name="PlanningUnitQuestion",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('text', models.CharField(max_length=1024)),
-                ('order', models.PositiveIntegerField(help_text='Order of the question in the survey.')),
-                ('question_type', models.CharField(choices=[('multiple_choice', 'Multiple Choice'), ('single_choice', 'Single Choice'), ('text', 'Text'), ('number', 'Number')], help_text='Type of the question.', max_length=50)),
-                ('is_required', models.BooleanField(default=False, help_text='Check if this question is required.')),
-                ('collect_other', models.BooleanField(default=False, help_text="Check if an 'Other' option should be provided for multiple choice questions.")),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("text", models.CharField(max_length=1024)),
+                (
+                    "order",
+                    models.PositiveIntegerField(
+                        help_text="Order of the question in the survey."
+                    ),
+                ),
+                (
+                    "question_type",
+                    models.CharField(
+                        choices=[
+                            ("multiple_choice", "Multiple Choice"),
+                            ("single_choice", "Single Choice"),
+                            ("text", "Text"),
+                            ("number", "Number"),
+                        ],
+                        help_text="Type of the question.",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "is_required",
+                    models.BooleanField(
+                        default=False, help_text="Check if this question is required."
+                    ),
+                ),
+                (
+                    "collect_other",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Check if an 'Other' option should be provided for multiple choice questions.",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Planning Unit Question',
-                'verbose_name_plural': 'Planning Unit Questions',
-                'ordering': ['order'],
+                "verbose_name": "Planning Unit Question",
+                "verbose_name_plural": "Planning Unit Questions",
+                "ordering": ["order"],
             },
         ),
         migrations.CreateModel(
-            name='Scenario',
+            name="Scenario",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=255)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('user_defined_pus', models.BooleanField(default=False, help_text='Check if this survey uses user drawings rather than pre-defined planning units.')),
-                ('study_bounds', django.contrib.gis.db.models.fields.PolygonField(blank=True, help_text='Define the study area for this survey.', null=True, srid=4326)),
-                ('selection_snapping', models.CharField(choices=[('default', 'Default'), ('intersects', 'Intersection'), ('is_within', 'Is Within')], help_text='Select the snapping behavior for planning unit selection.', max_length=50)),
-                ('is_spatial', models.BooleanField(default=True, help_text='Check if user will enter spatial data.')),
-                ('is_weighted', models.BooleanField(default=True, help_text='Check if user will assign coins to answers.')),
-                ('total_coins', models.IntegerField(default=100, help_text='Total number of coins available to users for weighting selections.')),
-                ('require_all_coins_used', models.BooleanField(default=True, help_text='Check if users must use all coins when weighting selections.')),
-                ('min_coins_per_pu', models.IntegerField(default=1, help_text='Minimum number of coins that must be assigned to each planning unit.')),
-                ('max_coins_per_pu', models.IntegerField(default=100, help_text='Maximum number of coins that can be assigned to each planning unit.')),
-                ('pu_family', models.ForeignKey(blank=True, help_text='Select the Planning Unit Family this survey belongs to.', null=True, on_delete=django.db.models.deletion.CASCADE, related_name='surveys_pu_family', to='survey.planningunitfamily')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "user_defined_pus",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Check if this survey uses user drawings rather than pre-defined planning units.",
+                    ),
+                ),
+                (
+                    "study_bounds",
+                    django.contrib.gis.db.models.fields.PolygonField(
+                        blank=True,
+                        help_text="Define the study area for this survey.",
+                        null=True,
+                        srid=4326,
+                    ),
+                ),
+                (
+                    "selection_snapping",
+                    models.CharField(
+                        choices=[
+                            ("default", "Default"),
+                            ("intersects", "Intersection"),
+                            ("is_within", "Is Within"),
+                        ],
+                        help_text="Select the snapping behavior for planning unit selection.",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "is_spatial",
+                    models.BooleanField(
+                        default=True, help_text="Check if user will enter spatial data."
+                    ),
+                ),
+                (
+                    "is_weighted",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Check if user will assign coins to answers.",
+                    ),
+                ),
+                (
+                    "total_coins",
+                    models.IntegerField(
+                        default=100,
+                        help_text="Total number of coins available to users for weighting selections.",
+                    ),
+                ),
+                (
+                    "require_all_coins_used",
+                    models.BooleanField(
+                        default=True,
+                        help_text="Check if users must use all coins when weighting selections.",
+                    ),
+                ),
+                (
+                    "min_coins_per_pu",
+                    models.IntegerField(
+                        default=1,
+                        help_text="Minimum number of coins that must be assigned to each planning unit.",
+                    ),
+                ),
+                (
+                    "max_coins_per_pu",
+                    models.IntegerField(
+                        default=100,
+                        help_text="Maximum number of coins that can be assigned to each planning unit.",
+                    ),
+                ),
+                (
+                    "pu_family",
+                    models.ForeignKey(
+                        blank=True,
+                        help_text="Select the Planning Unit Family this survey belongs to.",
+                        null=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="surveys_pu_family",
+                        to="survey.planningunitfamily",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Scenario',
-                'verbose_name_plural': 'Scenarios',
+                "verbose_name": "Scenario",
+                "verbose_name_plural": "Scenarios",
             },
         ),
         migrations.CreateModel(
-            name='ScenarioQuestion',
+            name="ScenarioQuestion",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('text', models.CharField(max_length=1024)),
-                ('order', models.PositiveIntegerField(help_text='Order of the question in the survey.')),
-                ('question_type', models.CharField(choices=[('multiple_choice', 'Multiple Choice'), ('single_choice', 'Single Choice'), ('text', 'Text'), ('number', 'Number')], help_text='Type of the question.', max_length=50)),
-                ('is_required', models.BooleanField(default=False, help_text='Check if this question is required.')),
-                ('collect_other', models.BooleanField(default=False, help_text="Check if an 'Other' option should be provided for multiple choice questions.")),
-                ('scenario', models.ForeignKey(help_text='The scenario this question belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='scenario_questions_scenario', to='survey.scenario')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("text", models.CharField(max_length=1024)),
+                (
+                    "order",
+                    models.PositiveIntegerField(
+                        help_text="Order of the question in the survey."
+                    ),
+                ),
+                (
+                    "question_type",
+                    models.CharField(
+                        choices=[
+                            ("multiple_choice", "Multiple Choice"),
+                            ("single_choice", "Single Choice"),
+                            ("text", "Text"),
+                            ("number", "Number"),
+                        ],
+                        help_text="Type of the question.",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "is_required",
+                    models.BooleanField(
+                        default=False, help_text="Check if this question is required."
+                    ),
+                ),
+                (
+                    "collect_other",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Check if an 'Other' option should be provided for multiple choice questions.",
+                    ),
+                ),
+                (
+                    "scenario",
+                    models.ForeignKey(
+                        help_text="The scenario this question belongs to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="scenario_questions_scenario",
+                        to="survey.scenario",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Scenario Question',
-                'verbose_name_plural': 'Scenario Questions',
-                'ordering': ['order'],
+                "verbose_name": "Scenario Question",
+                "verbose_name_plural": "Scenario Questions",
+                "ordering": ["order"],
             },
         ),
         migrations.CreateModel(
-            name='Survey',
+            name="Survey",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=255)),
-                ('description', models.TextField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('start_date', models.DateTimeField(blank=True, null=True)),
-                ('end_date', models.DateTimeField(blank=True, null=True)),
-                ('groups', models.ManyToManyField(blank=True, help_text='Select groups that can access this survey.', related_name='surveys_groups', to='mapgroups.mapgroup')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("title", models.CharField(max_length=255)),
+                ("description", models.TextField(blank=True, null=True)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                ("start_date", models.DateTimeField(blank=True, null=True)),
+                ("end_date", models.DateTimeField(blank=True, null=True)),
+                (
+                    "groups",
+                    models.ManyToManyField(
+                        blank=True,
+                        help_text="Select groups that can access this survey.",
+                        related_name="surveys_groups",
+                        to="mapgroups.mapgroup",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Survey',
-                'verbose_name_plural': 'Surveys',
+                "verbose_name": "Survey",
+                "verbose_name_plural": "Surveys",
             },
         ),
         migrations.CreateModel(
-            name='SurveyQuestion',
+            name="SurveyQuestion",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('text', models.CharField(max_length=1024)),
-                ('order', models.PositiveIntegerField(help_text='Order of the question in the survey.')),
-                ('question_type', models.CharField(choices=[('multiple_choice', 'Multiple Choice'), ('single_choice', 'Single Choice'), ('text', 'Text'), ('number', 'Number')], help_text='Type of the question.', max_length=50)),
-                ('is_required', models.BooleanField(default=False, help_text='Check if this question is required.')),
-                ('collect_other', models.BooleanField(default=False, help_text="Check if an 'Other' option should be provided for multiple choice questions.")),
-                ('survey', models.ForeignKey(help_text='The survey this question belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='survey_questions_survey', to='survey.survey')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("text", models.CharField(max_length=1024)),
+                (
+                    "order",
+                    models.PositiveIntegerField(
+                        help_text="Order of the question in the survey."
+                    ),
+                ),
+                (
+                    "question_type",
+                    models.CharField(
+                        choices=[
+                            ("multiple_choice", "Multiple Choice"),
+                            ("single_choice", "Single Choice"),
+                            ("text", "Text"),
+                            ("number", "Number"),
+                        ],
+                        help_text="Type of the question.",
+                        max_length=50,
+                    ),
+                ),
+                (
+                    "is_required",
+                    models.BooleanField(
+                        default=False, help_text="Check if this question is required."
+                    ),
+                ),
+                (
+                    "collect_other",
+                    models.BooleanField(
+                        default=False,
+                        help_text="Check if an 'Other' option should be provided for multiple choice questions.",
+                    ),
+                ),
+                (
+                    "survey",
+                    models.ForeignKey(
+                        help_text="The survey this question belongs to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="survey_questions_survey",
+                        to="survey.survey",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Survey Question',
-                'verbose_name_plural': 'Survey Questions',
-                'ordering': ['order'],
+                "verbose_name": "Survey Question",
+                "verbose_name_plural": "Survey Questions",
+                "ordering": ["order"],
             },
         ),
         migrations.CreateModel(
-            name='SurveyResponse',
+            name="SurveyResponse",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('submitted_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('survey', models.ForeignKey(help_text='The survey this response belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='survey_responses_survey', to='survey.survey')),
-                ('user', models.ForeignKey(help_text='The user who submitted this response.', on_delete=django.db.models.deletion.CASCADE, related_name='survey_responses_user', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("submitted_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "survey",
+                    models.ForeignKey(
+                        help_text="The survey this response belongs to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="survey_responses_survey",
+                        to="survey.survey",
+                    ),
+                ),
+                (
+                    "user",
+                    models.ForeignKey(
+                        help_text="The user who submitted this response.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="survey_responses_user",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Survey Response',
-                'verbose_name_plural': 'Survey Responses',
-                'unique_together': {('survey', 'user')},
+                "verbose_name": "Survey Response",
+                "verbose_name_plural": "Survey Responses",
+                "unique_together": {("survey", "user")},
             },
         ),
         migrations.CreateModel(
-            name='SurveyAnswer',
+            name="SurveyAnswer",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('selected_options', models.JSONField(blank=True, help_text='Selected options for multiple choice or single choice questions.', null=True)),
-                ('other_text_answer', models.TextField(blank=True, help_text="'Other' answer for multiple choice questions.", null=True)),
-                ('text_answer', models.TextField(blank=True, help_text='Text answer for text questions.', null=True)),
-                ('numeric_answer', models.FloatField(blank=True, help_text='Numeric answer for number questions.', null=True)),
-                ('question', models.ForeignKey(help_text='The survey question this answer corresponds to.', on_delete=django.db.models.deletion.CASCADE, related_name='survey_answers_question', to='survey.surveyquestion')),
-                ('response', models.ForeignKey(help_text='The survey response this answer belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_response', to='survey.surveyresponse')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "selected_options",
+                    models.JSONField(
+                        blank=True,
+                        help_text="Selected options for multiple choice or single choice questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "other_text_answer",
+                    models.TextField(
+                        blank=True,
+                        help_text="'Other' answer for multiple choice questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "text_answer",
+                    models.TextField(
+                        blank=True,
+                        help_text="Text answer for text questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "numeric_answer",
+                    models.FloatField(
+                        blank=True,
+                        help_text="Numeric answer for number questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "question",
+                    models.ForeignKey(
+                        help_text="The survey question this answer corresponds to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="survey_answers_question",
+                        to="survey.surveyquestion",
+                    ),
+                ),
+                (
+                    "response",
+                    models.ForeignKey(
+                        help_text="The survey response this answer belongs to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_response",
+                        to="survey.surveyresponse",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Survey Answer',
-                'verbose_name_plural': 'Survey Answers',
+                "verbose_name": "Survey Answer",
+                "verbose_name_plural": "Survey Answers",
             },
         ),
         migrations.CreateModel(
-            name='ScenarioQuestionOption',
+            name="ScenarioQuestionOption",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('text', models.CharField(max_length=255)),
-                ('value', models.IntegerField(help_text='Numeric value associated with this option.')),
-                ('order', models.PositiveIntegerField(help_text='Order of the option in the list.')),
-                ('question', models.ForeignKey(help_text='The scenario question this option belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='scenario_question_options_question', to='survey.scenarioquestion')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("text", models.CharField(max_length=255)),
+                (
+                    "value",
+                    models.IntegerField(
+                        help_text="Numeric value associated with this option."
+                    ),
+                ),
+                (
+                    "order",
+                    models.PositiveIntegerField(
+                        help_text="Order of the option in the list."
+                    ),
+                ),
+                (
+                    "question",
+                    models.ForeignKey(
+                        help_text="The scenario question this option belongs to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="scenario_question_options_question",
+                        to="survey.scenarioquestion",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Scenario Question Option',
-                'verbose_name_plural': 'Scenario Question Options',
-                'ordering': ['order'],
+                "verbose_name": "Scenario Question Option",
+                "verbose_name_plural": "Scenario Question Options",
+                "ordering": ["order"],
             },
         ),
         migrations.CreateModel(
-            name='ScenarioAnswer',
+            name="ScenarioAnswer",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('selected_options', models.JSONField(blank=True, help_text='Selected options for multiple choice or single choice questions.', null=True)),
-                ('other_text_answer', models.TextField(blank=True, help_text="'Other' answer for multiple choice questions.", null=True)),
-                ('text_answer', models.TextField(blank=True, help_text='Text answer for text questions.', null=True)),
-                ('numeric_answer', models.FloatField(blank=True, help_text='Numeric answer for number questions.', null=True)),
-                ('question', models.ForeignKey(help_text='The scenario question this answer corresponds to.', on_delete=django.db.models.deletion.CASCADE, related_name='scenario_answers_question', to='survey.scenarioquestion')),
-                ('response', models.ForeignKey(help_text='The survey response this answer belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_response', to='survey.surveyresponse')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "selected_options",
+                    models.JSONField(
+                        blank=True,
+                        help_text="Selected options for multiple choice or single choice questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "other_text_answer",
+                    models.TextField(
+                        blank=True,
+                        help_text="'Other' answer for multiple choice questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "text_answer",
+                    models.TextField(
+                        blank=True,
+                        help_text="Text answer for text questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "numeric_answer",
+                    models.FloatField(
+                        blank=True,
+                        help_text="Numeric answer for number questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "question",
+                    models.ForeignKey(
+                        help_text="The scenario question this answer corresponds to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="scenario_answers_question",
+                        to="survey.scenarioquestion",
+                    ),
+                ),
+                (
+                    "response",
+                    models.ForeignKey(
+                        help_text="The survey response this answer belongs to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_response",
+                        to="survey.surveyresponse",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Scenario Answer',
-                'verbose_name_plural': 'Scenario Answers',
+                "verbose_name": "Scenario Answer",
+                "verbose_name_plural": "Scenario Answers",
             },
         ),
         migrations.AddField(
-            model_name='scenario',
-            name='survey',
-            field=models.ForeignKey(help_text='The survey this scenario belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='scenarios_survey', to='survey.survey'),
+            model_name="scenario",
+            name="survey",
+            field=models.ForeignKey(
+                help_text="The survey this scenario belongs to.",
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="scenarios_survey",
+                to="survey.survey",
+            ),
         ),
         migrations.CreateModel(
-            name='PlanningUnitQuestionOption',
+            name="PlanningUnitQuestionOption",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('text', models.CharField(max_length=255)),
-                ('value', models.IntegerField(help_text='Numeric value associated with this option.')),
-                ('order', models.PositiveIntegerField(help_text='Order of the option in the list.')),
-                ('question', models.ForeignKey(help_text='The planning unit question this option belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='planning_unit_question_options_question', to='survey.planningunitquestion')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("text", models.CharField(max_length=255)),
+                (
+                    "value",
+                    models.IntegerField(
+                        help_text="Numeric value associated with this option."
+                    ),
+                ),
+                (
+                    "order",
+                    models.PositiveIntegerField(
+                        help_text="Order of the option in the list."
+                    ),
+                ),
+                (
+                    "question",
+                    models.ForeignKey(
+                        help_text="The planning unit question this option belongs to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="planning_unit_question_options_question",
+                        to="survey.planningunitquestion",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Planning Unit Question Option',
-                'verbose_name_plural': 'Planning Unit Question Options',
-                'ordering': ['order'],
+                "verbose_name": "Planning Unit Question Option",
+                "verbose_name_plural": "Planning Unit Question Options",
+                "ordering": ["order"],
             },
         ),
         migrations.AddField(
-            model_name='planningunitquestion',
-            name='scenario',
-            field=models.ForeignKey(help_text='The scenario this question belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='planning_unit_questions_scenario', to='survey.scenario'),
+            model_name="planningunitquestion",
+            name="scenario",
+            field=models.ForeignKey(
+                help_text="The scenario this question belongs to.",
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="planning_unit_questions_scenario",
+                to="survey.scenario",
+            ),
         ),
         migrations.CreateModel(
-            name='PlanningUnitAnswer',
+            name="PlanningUnitAnswer",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('selected_options', models.JSONField(blank=True, help_text='Selected options for multiple choice or single choice questions.', null=True)),
-                ('other_text_answer', models.TextField(blank=True, help_text="'Other' answer for multiple choice questions.", null=True)),
-                ('text_answer', models.TextField(blank=True, help_text='Text answer for text questions.', null=True)),
-                ('numeric_answer', models.FloatField(blank=True, help_text='Numeric answer for number questions.', null=True)),
-                ('planning_unit', models.ForeignKey(help_text='The planning unit this answer is associated with.', on_delete=django.db.models.deletion.CASCADE, related_name='planning_unit_answers_planning_unit', to='survey.planningunit')),
-                ('question', models.ForeignKey(help_text='The planning unit question this answer corresponds to.', on_delete=django.db.models.deletion.CASCADE, related_name='planning_unit_answers_question', to='survey.planningunitquestion')),
-                ('response', models.ForeignKey(help_text='The survey response this answer belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='%(class)s_response', to='survey.surveyresponse')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "selected_options",
+                    models.JSONField(
+                        blank=True,
+                        help_text="Selected options for multiple choice or single choice questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "other_text_answer",
+                    models.TextField(
+                        blank=True,
+                        help_text="'Other' answer for multiple choice questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "text_answer",
+                    models.TextField(
+                        blank=True,
+                        help_text="Text answer for text questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "numeric_answer",
+                    models.FloatField(
+                        blank=True,
+                        help_text="Numeric answer for number questions.",
+                        null=True,
+                    ),
+                ),
+                (
+                    "planning_unit",
+                    models.ForeignKey(
+                        help_text="The planning unit this answer is associated with.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="planning_unit_answers_planning_unit",
+                        to="survey.planningunit",
+                    ),
+                ),
+                (
+                    "question",
+                    models.ForeignKey(
+                        help_text="The planning unit question this answer corresponds to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="planning_unit_answers_question",
+                        to="survey.planningunitquestion",
+                    ),
+                ),
+                (
+                    "response",
+                    models.ForeignKey(
+                        help_text="The survey response this answer belongs to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="%(class)s_response",
+                        to="survey.surveyresponse",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Planning Unit Answer',
-                'verbose_name_plural': 'Planning Unit Answers',
+                "verbose_name": "Planning Unit Answer",
+                "verbose_name_plural": "Planning Unit Answers",
             },
         ),
         migrations.AddField(
-            model_name='planningunit',
-            name='family',
-            field=models.ManyToManyField(help_text='Select the Planning Unit Families this planning unit belongs to.', related_name='planning_units_family', to='survey.planningunitfamily'),
+            model_name="planningunit",
+            name="family",
+            field=models.ManyToManyField(
+                help_text="Select the Planning Unit Families this planning unit belongs to.",
+                related_name="planning_units_family",
+                to="survey.planningunitfamily",
+            ),
         ),
         migrations.CreateModel(
-            name='SurveyQuestionOption',
+            name="SurveyQuestionOption",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('text', models.CharField(max_length=255)),
-                ('value', models.IntegerField(help_text='Numeric value associated with this option.')),
-                ('order', models.PositiveIntegerField(help_text='Order of the option in the list.')),
-                ('question', models.ForeignKey(help_text='The survey question this option belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='survey_question_options_question', to='survey.surveyquestion')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("text", models.CharField(max_length=255)),
+                (
+                    "value",
+                    models.IntegerField(
+                        help_text="Numeric value associated with this option."
+                    ),
+                ),
+                (
+                    "order",
+                    models.PositiveIntegerField(
+                        help_text="Order of the option in the list."
+                    ),
+                ),
+                (
+                    "question",
+                    models.ForeignKey(
+                        help_text="The survey question this option belongs to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="survey_question_options_question",
+                        to="survey.surveyquestion",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Survey Question Option',
-                'verbose_name_plural': 'Survey Question Options',
-                'ordering': ['order'],
-                'unique_together': {('question', 'value')},
+                "verbose_name": "Survey Question Option",
+                "verbose_name_plural": "Survey Question Options",
+                "ordering": ["order"],
+                "unique_together": {("question", "value")},
             },
         ),
         migrations.CreateModel(
-            name='CoinAssignment',
+            name="CoinAssignment",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('coins_assigned', models.IntegerField(default=0, help_text='Number of coins assigned to this planning unit.')),
-                ('planning_unit', models.ForeignKey(help_text='The planning unit this coin assignment is associated with.', on_delete=django.db.models.deletion.CASCADE, related_name='coin_assignments_planning_unit', to='survey.planningunit')),
-                ('response', models.ForeignKey(help_text='The survey response this coin assignment belongs to.', on_delete=django.db.models.deletion.CASCADE, related_name='coin_assignments_response', to='survey.surveyresponse')),
-                ('scenario', models.ForeignKey(help_text='The scenario this coin assignment is associated with.', on_delete=django.db.models.deletion.CASCADE, related_name='coin_assignments_scenario', to='survey.scenario')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "coins_assigned",
+                    models.IntegerField(
+                        default=0,
+                        help_text="Number of coins assigned to this planning unit.",
+                    ),
+                ),
+                (
+                    "planning_unit",
+                    models.ForeignKey(
+                        help_text="The planning unit this coin assignment is associated with.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="coin_assignments_planning_unit",
+                        to="survey.planningunit",
+                    ),
+                ),
+                (
+                    "response",
+                    models.ForeignKey(
+                        help_text="The survey response this coin assignment belongs to.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="coin_assignments_response",
+                        to="survey.surveyresponse",
+                    ),
+                ),
+                (
+                    "scenario",
+                    models.ForeignKey(
+                        help_text="The scenario this coin assignment is associated with.",
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="coin_assignments_scenario",
+                        to="survey.scenario",
+                    ),
+                ),
             ],
             options={
-                'verbose_name': 'Coin Assignment',
-                'verbose_name_plural': 'Coin Assignments',
-                'unique_together': {('response', 'scenario', 'planning_unit')},
+                "verbose_name": "Coin Assignment",
+                "verbose_name_plural": "Coin Assignments",
+                "unique_together": {("response", "scenario", "planning_unit")},
             },
         ),
     ]

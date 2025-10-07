@@ -1,0 +1,35 @@
+# Docker ignore file to exclude unnecessary files from being copied to the container
+
+# Data directories that should not be copied
+data/*/
+
+# Git files
+.git/
+.gitignore
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Temporary files
+tmp/
+temp/

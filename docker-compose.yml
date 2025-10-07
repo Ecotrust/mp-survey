@@ -1,0 +1,46 @@
+services:
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile.django
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    build:
+      context: .
+      dockerfile: Dockerfile.postgis
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgis_data:/var/lib/postgresql/data/:rw
+
+volumes:
+  # postgis_data is a named volume managed by docker. Points
+  # to docker/volumes/<volume name>/_data
+  postgis_data:
+    # Use external: true if you want to manage the volume yourself
+    # Volume must be created before running docker compose up
+    # e.g. docker volume create postgis_data
+    # external: true
