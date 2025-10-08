@@ -1,5 +1,6 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
+from django.utils import timezone
 from .models import Survey, SurveyResponse
 from datetime import datetime
 # from django.http import JsonResponse
@@ -45,6 +46,11 @@ def get_myplanner_html(request, template='survey/survey_myplanner.html'):
     rendered = render_to_string(template, context=context, request=request)
     return rendered
 
+def get_myplanner_survey_content(request, template='survey/survey_myplanner_content.html'):
+    return JsonResponse({
+        'html': get_myplanner_html(request, template)
+    })
+
 def get_myplanner_css(request):
     return '<link rel="stylesheet" href="/static/survey/css/survey_myplanner.css" type="text/css">'
 
@@ -85,70 +91,131 @@ def save_survey_response(request, response):
         'errors': form.errors
     }
 
-def survey_start(request, surveypk, responsepk=None):
+def get_survey_response(request, surveypk, responsepk=None):
     user = request.user
+    response = None
+    survey = None
+
+    # check if user is authenticated
     if not user.is_authenticated:
-        # TODO: Return error
-        return None
-    if not responsepk is None:
+        return {
+            'status': 'error',
+            'status_code': 403,
+            'message': 'User must be authenticated to start a survey.'
+        }
+    # Get survey and response if responsepk is provided
+    if responsepk is not None:
         try:
             response = SurveyResponse.objects.get(pk=responsepk, user=user)
             if response.survey.pk != int(surveypk):
-                # TODO: Return error
-                return None
+                return {
+                    'status': 'error',
+                    'status_code': 404,
+                    'message': 'Provided response ID does not match provided survey ID.'
+                }
             survey = response.survey
         except SurveyResponse.DoesNotExist:
-            # TODO: Return error
-            return None
+            return {
+                'status': 'error',
+                'status_code': 404,
+                'message': 'No matching survey response found for this user.'
+            }
     else:
-        survey = None
-        response = None
-    if survey is None:
+        # Get survey
         try:
             survey = Survey.objects.get(pk=surveypk)
         except Survey.DoesNotExist:
-            # TODO: Return error
-            return None
-        existing_responses = SurveyResponse.objects.filter(survey=survey, user=user)
-        if not survey.groups.filter(mapgroupmember__user=user).exists():
-            # TODO: Return error
-            return None
-        # ??? If responsepk is None???:
-        if survey.allow_multiple_responses or existing_responses.count() == 0:
-            response = None
-        # check if user is in any of the groups for this survey
-        response = None
-    responses = SurveyResponse.objects.filter(survey=survey, user=user)
-    for response_candidate in responses:
-        if hasattr(survey, 'allow_multiple_responses') and survey.allow_multiple_responses:
-            # check if there is an existing incomplete response
-            if not response_candidate.completed:
-                response = response_candidate
-                break
-        else:
-            response = response_candidate
-            break
-    # if no existing incomplete response, create a new one
-    if response is None:
-        response = SurveyResponse.objects.create(survey=survey, user=user)
-    # return JsonResponse({'response_id': response.id, 'survey_id': survey.id, 'response_form': response.get_form(request), 'step': 1, 'steps': survey.get_step_count()})
-    if request.method == 'POST':
-        context = save_survey_response(request, response)
-        return HttpResponse(context)
-    return get_response_form(response,request)
+            return {
+                'status': 'error',
+                'status_code': 404,
+                'message': 'Survey does not exist.'
+            }
 
-def survey_continue(request, responsepk):
-    # user = request.user
-    # if not user.is_authenticated:
-    #     return None
-    # try:
-    #     response = SurveyResponse.objects.get(pk=responsepk, user=user)
-    # except SurveyResponse.DoesNotExist:
-    #     return None
+    # Check if user is in any of the groups for this survey
+    if not survey.groups.filter(mapgroupmember__user=user).exists():
+        return {
+            'status': 'error',
+            'status_code': 403,
+            'message': 'User does not have permission to take this survey.'
+        }
+        
+    # check if survey is active
+    now = timezone.now()
+    if survey.start_date and survey.start_date > now:
+        return {
+            'status': 'error',
+            'status_code': 403,
+            'message': 'Survey has not started yet.'
+        }
+    if survey.end_date and survey.end_date < now:
+        return {
+            'status': 'error',
+            'status_code': 403,
+            'message': 'Survey has ended.'
+        }
+
+    if not survey.allow_multiple_responses:
+        # Check for existing responses
+        existing_responses = SurveyResponse.objects.filter(survey=survey, user=user)
+        if existing_responses.count() > 1:
+            return {
+                'status': 'error',
+                'status_code': 400,
+                'message': 'Multiple responses found for a survey that does not allow them.'
+            }
+        elif existing_responses.count() == 1:
+            if response is not None and response not in existing_responses:
+                return {
+                    'status': 'error',
+                    'status_code': 400,
+                    'message': 'This user already has another response for this survey.'
+                }
+            elif response is None:
+                response = existing_responses.first()
+    
+    # if no existing response, create a new one
+    if response is None:
+        try:
+            response = SurveyResponse.objects.create(survey=survey, user=user)
+        except Exception as e:
+            return {
+                'status': 'error',
+                'status_code': 500,
+                'message': f'Error creating survey response: {str(e)}'
+            }   
+        
+    return {
+        'status': 'success',
+        'status_code': 200,
+        'message': 'Survey response ready.',
+        'response': response,
+        # 'survey': survey
+    }
+
+def survey_start(request, surveypk, responsepk=None):
+    survey_response = get_survey_response(request, surveypk, responsepk)
+
+    if isinstance(survey_response, dict) and survey_response.get('status') == 'error':
+        return HttpResponse(survey_response, status=survey_response.get('status_code', 400))
+
+    response = survey_response.get('response')
+    # survey = survey_response.get('survey')
+
     if request.method == 'POST':
         context = save_survey_response(request, response)
         return HttpResponse(context)
-    return get_response_form(response,request)
+    
+    next_scenario = response.survey.get_scenarios().first()
+
+    return JsonResponse({
+        'status': 'success',
+        'status_code': 200,
+        'message': 'Survey response form loaded.',
+        'html': get_response_form(response, request).content.decode('utf-8'),
+        'response_id': response.id,
+        'survey_id': response.survey.id,
+        'next_scenario_id': next_scenario.id if next_scenario else False
+    }) 
 
 def get_response_form(response, request, template='survey/survey_response_form.html'):
     if response is None or request is None:

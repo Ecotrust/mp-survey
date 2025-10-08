@@ -214,13 +214,8 @@ class Survey(models.Model):
     def __str__(self):
         return self.title
     
-    def get_step_count(self):
-        step_count = 1  # Start with 1 for the initial info step
-        for scenario in self.scenarios_survey.all():
-            step_count += 1  # Each scenario introduction is a step
-            if scenario.is_spatial:
-                step_count += 1  # Planning unit selection step
-        return step_count
+    def get_scenarios(self):
+        return self.scenarios_survey.all().order_by('order')
 
     class Meta:
         verbose_name = "Survey"
@@ -228,6 +223,7 @@ class Survey(models.Model):
 
 class Scenario(models.Model):
     name = models.CharField(max_length=255)
+    order = models.PositiveIntegerField(help_text="Order of the scenario in the survey.")
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
