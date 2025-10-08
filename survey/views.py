@@ -3,7 +3,6 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from .models import Survey, SurveyResponse
 from datetime import datetime
-# from django.http import JsonResponse
 from django.shortcuts import render
 from .forms import SurveyResponseForm
 
@@ -19,7 +18,7 @@ def get_myplanner_html(request, template='survey/survey_myplanner.html'):
     user = request.user
     if user.is_authenticated:
         # get current date-time
-        now = datetime.now()
+        now = timezone.now()
         # get surveys that are active
         surveys = Survey.objects.filter(start_date__lte=now, end_date__gte=now)
         for survey in surveys:
@@ -199,11 +198,10 @@ def survey_start(request, surveypk, responsepk=None):
         return HttpResponse(survey_response, status=survey_response.get('status_code', 400))
 
     response = survey_response.get('response')
-    # survey = survey_response.get('survey')
 
     if request.method == 'POST':
         context = save_survey_response(request, response)
-        return HttpResponse(context)
+        return JsonResponse(context, status=context.get('status_code', 200))
     
     next_scenario = response.survey.get_scenarios().first()
 
@@ -223,7 +221,6 @@ def get_response_form(response, request, template='survey/survey_response_form.h
     context = {
         'response': response,
         'survey': response.survey,
-        # 'scenarios': self.survey.scenarios_survey.all(),
         'questions': response.survey.survey_questions_survey.all(),
         'user': response.user,
         'form': SurveyResponseForm(survey=response.survey, instance=response)

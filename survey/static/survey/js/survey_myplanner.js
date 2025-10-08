@@ -62,7 +62,8 @@ function takeSurvey(surveyId, responseId){
         type: 'GET',
         success: function(data) {
             $('#myplanner-survey-dialog-body').html(data.html);
-            if (data.nextScenarioId) {
+            if (data.next_scenario_id) {
+                $('#myplanner-survey-dialog-next').off('click');
                 $('#myplanner-survey-dialog-next').on('click', function() {
                     // Logic to load next scenario if applicable
                     // For now, just hide the dialog
@@ -70,16 +71,32 @@ function takeSurvey(surveyId, responseId){
                 });
                 showNextButton();
             } else {
-                $('#myplanner-survey-dialog-save').on('click', function() {
-                    // Logic to save the survey
-                    // For now, just hide the dialog
-                    window.alert('Survey responses saved. Thank you!');
-                    refreshSurveyContent();
-                    hideSurveyForm();
+                $('#myplanner-survey-dialog-save').off('click');
+                $('#myplanner-survey-dialog-save').on('click', function(e) {
+                    let csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    // AJAX call to save form data
+                    $.ajax({
+                        type: 'POST',
+                        url: '/survey/start/'+surveyId+'/'+data.response_id+'/',
+                        headers: { 'X-CSRFToken': csrftoken },
+                        data: $('#myplanner-survey-dialog-body form').serialize(),
+                        success: function(saveData) {
+                            if (saveData.status === 'success') {
+                                window.alert('Survey responses saved. Thank you!');
+                                refreshSurveyContent();
+                                hideSurveyForm();
+                            } else {
+                                window.alert('Error saving survey responses. Please try again.');
+                            }
+                        },
+                        error: function() {
+                            window.alert('Error saving survey responses. Please try again.');
+                        }
+                    });
+                    e.preventDefault();
                 });
                 showSaveButton();
             }
-
         },
         error: function(xhr, status, error) {
             $('#myplanner-survey-dialog-body').html(
@@ -91,5 +108,5 @@ function takeSurvey(surveyId, responseId){
 }
 
 function loadNextSurveyScenario(surveyId, responseId, nextScenarioId) {
-
+    window.alert('Loading next scenario. Id: ' + nextScenarioId);
 }
