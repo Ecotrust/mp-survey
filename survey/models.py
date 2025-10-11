@@ -216,6 +216,16 @@ class Survey(models.Model):
     
     def get_scenarios(self):
         return self.scenarios_survey.all().order_by('order')
+    
+    def get_next_scenario(self, current_scenario_id):
+        scenarios = list(self.get_scenarios())
+        for i, scenario in enumerate(scenarios):
+            if scenario.id == current_scenario_id:
+                if i + 1 < len(scenarios):
+                    return scenarios[i + 1].id
+                else:
+                    return None
+        return None
 
     class Meta:
         verbose_name = "Survey"
@@ -331,18 +341,18 @@ class SurveyResponse(models.Model):
         # A response is considered complete if all required questions have been answered
         required_questions = self.survey.survey_questions_survey.filter(is_required=True)
         for question in required_questions:
-            if not self.survey_answers_question.filter(question=question).exists():
+            if not self.surveyanswer_response.filter(question=question).exists():
                 return False
-        for scenario in self.survey.scenarios_survey.all():
+        for scenario in self.survey.get_scenarios():
             required_scenario_questions = scenario.scenario_questions_scenario.filter(is_required=True)
             for question in required_scenario_questions:
-                if not self.scenario_answers_question.filter(question=question).exists():
+                if not self.scenarioanswer_response.filter(question=question).exists():
                     return False
             if scenario.is_spatial:
                 required_pu_questions = scenario.planning_unit_questions_scenario.filter(is_required=True)
                 for pu in PlanningUnit.objects.filter(family=scenario.pu_family):
                     for question in required_pu_questions:
-                        if not self.planning_unit_answers_question.filter(question=question, planning_unit=pu).exists():
+                        if not self.planningunitanswer_response.filter(question=question, planning_unit=pu).exists():
                             return False
         return True
     

@@ -1,10 +1,11 @@
+from urllib import response
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
 from .models import Survey, SurveyResponse
 from datetime import datetime
 from django.shortcuts import render
-from .forms import SurveyResponseForm
+from .forms import SurveyResponseForm, ScenarioForm
 
 def get_myplanner_js(request):
     js_tag = '<script src="/static/survey/js/survey_myplanner.js"></script>'
@@ -214,6 +215,44 @@ def survey_start(request, surveypk, responsepk=None):
         'survey_id': response.survey.id,
         'next_scenario_id': next_scenario.id if next_scenario else False
     }) 
+
+# def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_scenario_form.html'):
+def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_response_form.html'):
+    try:
+        response = SurveyResponse.objects.get(pk=response_id, user=request.user)
+    except SurveyResponse.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'status_code': 404,
+            'message': 'Survey response not found.'
+        }, status=404)
+    
+    scenario = response.survey.get_scenarios().filter(id=scenario_id).first()
+    if scenario is None:
+        return JsonResponse({
+            'status': 'error',
+            'status_code': 404,
+            'message': 'Scenario not found in this survey.'
+        }, status=404)
+    
+    next_scenario = response.survey.get_next_scenario(scenario_id)
+
+    context = {
+        'response': response,
+        'survey': response.survey,
+        'scenario': scenario,
+        'questions': scenario.scenario_questions_scenario.all(),
+        'user': response.user,
+        'form': ScenarioForm(response=response, scenario=scenario)
+    }
+    rendered = render(request, template, context)
+    return JsonResponse({
+        'status': 'success',
+        'status_code': 200,
+        'message': 'Scenario form loaded.',
+        'html': rendered.content.decode('utf-8'),
+        'next_scenario_id': next_scenario.id if next_scenario else False
+    })
 
 def get_response_form(response, request, template='survey/survey_response_form.html'):
     if response is None or request is None:

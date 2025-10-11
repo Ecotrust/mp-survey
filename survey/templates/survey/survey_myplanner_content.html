@@ -1,92 +1,94 @@
  
                 <div class="accordion-inner">
                     {% if GROUP_SURVEYS|length == 0 %}
-                    <div style="font-weight: normal">
-                        <div style="padding: 10px;">
-                            <p>
-                                You currently have no
-                                group surveys.
-                            </p>
+                        <div style="font-weight: normal">
+                            <div style="padding: 10px;">
+                                <p>
+                                    You currently have no
+                                    group surveys.
+                                </p>
+                            </div>
                         </div>
-                    </div>
                     {% else %}
-                    <div>
-                        <ul class="unstyled list">
-                            {% for survey in SURVEY_STATUS %}
-                                <li class="layer">
-                                    <table class="layer-row">
-                                        <tbody>
-                                            <tr>
-                                                <td>
-                                                    <!-- <a class="btn btn-info-sign" data-bind="click: toggleDescription, css: { 'active': infoActive()}" data-toggle="tooltip" data-placement="right" data-title="More Info" data-original-title="" title=""> -->
-                                                    <a class="btn btn-info-sign"  data-toggle="tooltip" data-placement="right" data-title="More Info" data-original-title="" title="">
-                                                        <i class="fa fa-info-circle"></i>
-                                                    </a>
-                                                </td>
-                                                <!-- <td class="layer-name" data-bind="css: {isInvisible: isInvisible()}"> -->
-                                                <td class="layer-name">
-                                                    <!-- <a class="btn btn-layer" data-bind="click: app.viewModel.userLayers.toggleUserLayer, attr: { id:id+&quot;_selection&quot;}" id="visualize_userlayer_200_selection"> -->
-                                                    <a class="btn btn-layer" id="survey_survey_{{ survey.survey.id }}_selection">
-                                                        <table>
-                                                            <tbody><tr>
-                                                                <td class="text">
-                                                                    <!-- <a data-bind="attr: {title: sharedBy}, visible: shared()" style="text-decoration: none; cursor: default; display: none;" data-toggle="tooltip" data-placement="right" data-original-title=""> -->
-                                                                    <a style="text-decoration: none; cursor: default; display: none;" data-toggle="tooltip" data-placement="right" data-original-title="">
-                                                                        <i class="fa fa-user"></i>
-                                                                    </a>
-                                                                    <!-- <a data-bind="attr: {title: 'Shared with ' + selectedGroups().join(', ')}, visible: selectedGroups().length &gt; 0 &amp;&amp; !sharedBy()" style="text-decoration: none; cursor: default; display: none;" data-toggle="tooltip" data-placement="right" data-original-title="" title="Shared with "> -->
-                                                                    <a style="text-decoration: none; cursor: default; display: none;" data-toggle="tooltip" data-placement="right" data-original-title="" title="Shared with ">
-                                                                        <i class="fa fa-user-friends"></i>
-                                                                    </a>
+                        <div>
+                            <ul class="unstyled list">
+                                {% for survey in SURVEY_STATUS %}
+                                    <li class="layer">
+                                        <table class="layer-row">
+                                            <tbody>
+                                                <tr>
+                                                    <td>
+                                                        <!-- <a class="btn btn-info-sign" data-bind="click: toggleDescription, css: { 'active': infoActive()}" data-toggle="tooltip" data-placement="right" data-title="More Info" data-original-title="" title=""> -->
+                                                        <a class="btn btn-info-sign"  data-toggle="tooltip" data-placement="right" data-title="More Info" data-original-title="" title="">
+                                                            <i class="fa fa-info-circle"></i>
+                                                        </a>
+                                                    </td>
+                                                    <!-- <td class="layer-name" data-bind="css: {isInvisible: isInvisible()}"> -->
+                                                    <td class="layer-name">
+                                                        <!-- <a class="btn btn-layer" data-bind="click: app.viewModel.userLayers.toggleUserLayer, attr: { id:id+&quot;_selection&quot;}" id="visualize_userlayer_200_selection"> -->
+                                                        <a class="btn btn-layer" id="survey_survey_{{ survey.survey.id }}_selection">
+                                                            <table>
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <td class="text">
+                                                                            <!-- <a data-bind="attr: {title: sharedBy}, visible: shared()" style="text-decoration: none; cursor: default; display: none;" data-toggle="tooltip" data-placement="right" data-original-title=""> -->
+                                                                            <a style="text-decoration: none; cursor: default; display: none;" data-toggle="tooltip" data-placement="right" data-original-title="">
+                                                                                <i class="fa fa-user"></i>
+                                                                            </a>
+                                                                            <!-- <a data-bind="attr: {title: 'Shared with ' + selectedGroups().join(', ')}, visible: selectedGroups().length &gt; 0 &amp;&amp; !sharedBy()" style="text-decoration: none; cursor: default; display: none;" data-toggle="tooltip" data-placement="right" data-original-title="" title="Shared with "> -->
+                                                                            <a style="text-decoration: none; cursor: default; display: none;" data-toggle="tooltip" data-placement="right" data-original-title="" title="Shared with ">
+                                                                                <i class="fa fa-user-friends"></i>
+                                                                            </a>
 
-                                                                <!-- <span data-bind="text: name">0 0 0 2025 import</span> -->
-                                                                <span >{{ survey.survey.title }}</span>
-                                                                {% if survey.response %}
-                                                                    {% if survey.response.completed %}
-                                                                        <button 
-                                                                            class="btn btn-success btn-sm btn-open-survey"
-                                                                            onclick="takeSurvey({{ survey.survey.id }}, {{ survey.response.id }})"
-                                                                        >
-                                                                            Edit
-                                                                        </button>
-                                                                    {% else %}
-                                                                        <button 
-                                                                            class="btn btn-success btn-sm btn-open-survey" 
-                                                                            onclick="takeSurvey({{ survey.survey.id }}, {{ survey.response.id }})"
-                                                                        >
-                                                                            Continue
-                                                                        </button>
-                                                                    {% endif %}
-                                                                {% else %}
-                                                                    <button 
-                                                                        class="btn btn-success btn-sm btn-open-survey" 
-                                                                        onclick="takeSurvey({{ survey.survey.id }})"
-                                                                    >
-                                                                        Take
-                                                                    </button>
-                                                                {% endif %}
+                                                                            <!-- <span data-bind="text: name">0 0 0 2025 import</span> -->
+                                                                            <span >{{ survey.survey.title }}</span>
+                                                                            {% if survey.response %}
+                                                                                {% if survey.response.completed %}
+                                                                                    <button 
+                                                                                        class="btn btn-success btn-sm btn-open-survey"
+                                                                                        onclick="takeSurvey({{ survey.survey.id }}, {{ survey.response.id }})"
+                                                                                    >
+                                                                                        Edit
+                                                                                    </button>
+                                                                                {% else %}
+                                                                                    <button 
+                                                                                        class="btn btn-success btn-sm btn-open-survey" 
+                                                                                        onclick="takeSurvey({{ survey.survey.id }}, {{ survey.response.id }})"
+                                                                                    >
+                                                                                        Continue
+                                                                                    </button>
+                                                                                {% endif %}
+                                                                            {% else %}
+                                                                                <button 
+                                                                                    class="btn btn-success btn-sm btn-open-survey" 
+                                                                                    onclick="takeSurvey({{ survey.survey.id }})"
+                                                                                >
+                                                                                    Take
+                                                                                </button>
+                                                                            {% endif %}
 
-                                                                </td>
-                                                                <td class="add-on">
-                                                                    {% comment %}
-                                                                    <!-- ko if: isLocked --><!-- /ko -->
-                                                                    {% endcomment %}
-                                                                </td>
+                                                                        </td>
+                                                                        <td class="add-on">
+                                                                            {% comment %}
+                                                                            <!-- ko if: isLocked --><!-- /ko -->
+                                                                            {% endcomment %}
+                                                                        </td>
 
-                                                            </tr>
-                                                        </tbody></table>
-                                                    </a>
-                                                </td>
-                                                <td>
-                                                    <!-- <a class="btn" data-bind="visible: !shared(), click: app.menuModel.menu('userLayer')"><i class="fa fa-cog"></i></a> -->
-                                                    <a class="btn"><i class="fa fa-cog"></i></a>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            {% endfor %}
-
-                        </ul>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </a>
+                                                    </td>
+                                                    <td>
+                                                        <!-- <a class="btn" data-bind="visible: !shared(), click: app.menuModel.menu('userLayer')"><i class="fa fa-cog"></i></a> -->
+                                                        <a class="btn"><i class="fa fa-cog"></i></a>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                     {% endif %}
                 </div>
