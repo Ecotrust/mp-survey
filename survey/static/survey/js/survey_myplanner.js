@@ -2,6 +2,11 @@ $( "#group-surveys-header" ).on( "click", function() {
     $( "#survey-planner-content" ).slideToggle( "fast", function() {
       // Animation complete.
     });
+    if ($("#group-surveys-header").hasClass("active")) {
+        $("#group-surveys-header").removeClass("active");
+    } else {
+        $("#group-surveys-header").addClass("active");
+    }   
 });
 
 function showSurveyForm() {
