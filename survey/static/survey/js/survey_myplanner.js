@@ -36,6 +36,9 @@ function showSaveButton() {
 }
 
 function refreshSurveyContent() {
+    let active_survey_layer_boxes = $('#myplanner-survey-dialog').find('input[type=checkbox]:checked');
+    active_survey_layer_boxes.prop('checked', false);
+    active_survey_layer_boxes.change();
     $('#survey-planner-content').html('<p>Loading...</p>');
     let url = '/survey/myplanner/content/';
     $.ajax({

@@ -68,3 +68,7 @@ small.form-text.text-muted {
   border-bottom: none;
   padding-left: 3rem;
 }
+
+.survey-layer-group ul {
+  list-style-type: none;
+}
