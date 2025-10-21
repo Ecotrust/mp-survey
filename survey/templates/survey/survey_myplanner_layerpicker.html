@@ -1,0 +1,18 @@
+<!-- populated dynamically -->
+ {% for group in layer_groups.values %}
+ <h3>{{ group.name }}</h3>
+ <div class="layer-group">
+    <ul>
+        {% for layer in group.layers %}
+            <li>
+                <input 
+                    type="checkbox" class="myplanner-survey-layer-checkbox" 
+                    data-layer-id="{{ layer.id }}" 
+                    {% if layer.auto_show %}checked{% endif %}
+                > 
+                {{ layer.name }}
+            </li>
+        {% endfor %}
+    </ul>
+ </div>
+ {% endfor %}

@@ -124,6 +124,12 @@ function takeSurvey(surveyId, responseId){
                 });
                 showSaveButton();
             }
+            if (data.layer_groups) {
+                $('#myplanner-survey-layers-list').html(data.layer_groups);
+                $('#myplanner-survey-layers-slideup-button').show();
+            } else {
+                $('#myplanner-survey-layers-slideup-button').hide();
+            }
         },
         error: function(xhr, status, error) {
             $('#myplanner-survey-dialog-body').html(

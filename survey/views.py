@@ -2,7 +2,7 @@ from urllib import response
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
-from .models import Survey, SurveyResponse
+from .models import Survey, SurveyLayerGroup, SurveyResponse
 from datetime import datetime
 from django.shortcuts import render
 from .forms import SurveyResponseForm, ScenarioForm
@@ -206,6 +206,28 @@ def survey_start(request, surveypk, responsepk=None):
     
     next_scenario = response.survey.get_scenarios().first()
 
+    if SurveyLayerGroup.objects.filter(survey=response.survey).exists():
+        layer_groups = {}
+        for group in response.survey.survey_layer_groups_survey.all().order_by('order'):
+            layer_groups[group.id] = {
+                'name': group.name,
+                'layers': []
+            }
+            for layer_order in group.survey_layer_orders_layer_group.all().order_by('order'):
+                layer_groups[group.id]['layers'].append({
+                    'name': layer_order.layer.name,
+                    'layer_id': layer_order.layer.id,
+                    'order': layer_order.order,
+                    'auto_show': layer_order.auto_show
+                })
+
+        layer_group_html = render_to_string('survey/survey_myplanner_layerpicker.html', {
+            'layer_groups': layer_groups
+        }, request=request)
+    else:
+        layer_group_html = False
+
+
     return JsonResponse({
         'status': 'success',
         'status_code': 200,
@@ -213,6 +235,7 @@ def survey_start(request, surveypk, responsepk=None):
         'html': get_response_form(response, request).content.decode('utf-8'),
         'response_id': response.id,
         'survey_id': response.survey.id,
+        'layer_groups': layer_group_html,
         'next_scenario_id': next_scenario.id if next_scenario else False
     }) 
 
