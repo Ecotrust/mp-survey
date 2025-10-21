@@ -188,3 +188,25 @@ function finishSurvey(responseId) {
         }
     });
 }
+
+function showLayersPanel() {
+    $('#myplanner-survey-layer-button-before i').removeClass('fa-chevron-up');
+    $('#myplanner-survey-layer-button-before i').addClass('fa-chevron-down');
+    $('#myplanner-survey-layers-slideup-button').addClass('active');
+    $('#myplanner-survey-layers-container').animate({height: '80%'}, 300);
+}
+
+function hideLayersPanel() {
+    $('#myplanner-survey-layer-button-before i').removeClass('fa-chevron-down');
+    $('#myplanner-survey-layer-button-before i').addClass('fa-chevron-up');
+    $('#myplanner-survey-layers-slideup-button').removeClass('active');
+    $('#myplanner-survey-layers-container').animate({height: 0}, 300);
+}
+
+function toggleLayersPanel() {
+    if ($('#myplanner-survey-layers-slideup-button').hasClass('active')) {
+        hideLayersPanel();
+    } else {
+        showLayersPanel();
+    }
+}
