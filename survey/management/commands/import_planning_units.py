@@ -5,6 +5,7 @@ import shutil
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
+from django.conf import settings
 from survey.models import PlanningUnitFamily, PlanningUnit
 
 try:
@@ -64,32 +65,31 @@ class Command(BaseCommand):
                 input_file = shp_file
                 self.stdout.write(f"Using shapefile from zip: {shp_file}")
 
-            with transaction.atomic():
-                # Resolve Planning Unit Family using original file path for description
-                family = self._resolve_planning_unit_family(
-                    original_input_file, family_name
+            # Resolve Planning Unit Family using original file path for description
+            family = self._resolve_planning_unit_family(
+                original_input_file, family_name
+            )
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Found or created Planning Unit Family: {family.name}"
                 )
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"Found or created Planning Unit Family: {family.name}"
-                    )
+            )
+
+            # Read and process the file
+            self.stdout.write(f"Reading features from {input_file}...")
+            features = self._read_features(input_file)
+
+            if not features:
+                raise CommandError("No valid features found in the source file.")
+
+            self.stdout.write(f"Importing {len(features)} planning units...")
+            created_count = self._import_planning_units(features, family)
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Successfully imported planning units: {created_count} created"
                 )
-
-                # Read and process the file
-                self.stdout.write(f"Reading features from {input_file}...")
-                features = self._read_features(input_file)
-
-                if not features:
-                    raise CommandError("No valid features found in the source file.")
-
-                self.stdout.write(f"Importing {len(features)} planning units...")
-                created_count = self._import_planning_units(features, family)
-
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"Successfully imported planning units: {created_count} created"
-                    )
-                )
+            )
 
         except Exception as e:
             raise CommandError(f"Import failed: {str(e)}")
@@ -129,6 +129,23 @@ class Command(BaseCommand):
         if layer is None:
             raise CommandError("Could not get layer from data source")
 
+        # Get the spatial reference of the source data
+        source_srs = layer.GetSpatialRef()
+        if source_srs is None:
+            raise CommandError("Could not determine spatial reference system of source data")
+
+        # Create target spatial reference (database SRID)
+        target_srs = ogr.osr.SpatialReference()
+        target_srs.ImportFromEPSG(settings.SERVER_SRID)
+
+        # Create coordinate transformation if needed
+        transform = None
+        if source_srs.IsSame(target_srs) == 0:  # 0 means not the same
+            transform = ogr.osr.CoordinateTransformation(source_srs, target_srs)
+            self.stdout.write(
+                f"Transforming geometries from EPSG:{source_srs.GetAuthorityCode(None)} to EPSG:{settings.SERVER_SRID}"
+            )
+
         features = []
         for i in range(layer.GetFeatureCount()):
             feature = layer.GetFeature(i)
@@ -144,8 +161,12 @@ class Command(BaseCommand):
                 continue
 
             try:
+                # Transform geometry if needed
+                if transform:
+                    geometry_ref.Transform(transform)
+                
                 wkt_geometry = geometry_ref.ExportToWkt()
-                geos_geometry = GEOSGeometry(wkt_geometry)
+                geos_geometry = GEOSGeometry(wkt_geometry, srid=settings.SERVER_SRID)
 
                 # Process both Polygon and MultiPolygon geometries
                 if geos_geometry.geom_type not in ["Polygon", "MultiPolygon"]:
@@ -180,6 +201,7 @@ class Command(BaseCommand):
     def _import_planning_units(self, features, family):
         """Import planning units from features into the database."""
         created_count = 0
+        failed_count = 0
 
         for i, feature_data in enumerate(features):
             try:
@@ -187,18 +209,36 @@ class Command(BaseCommand):
                 if geometry.geom_type == "Polygon":
                     geometry = MultiPolygon(geometry)
 
-                # Create the planning unit without attributes
-                planning_unit = PlanningUnit.objects.create(
-                    geometry=geometry,
-                )
-                # Add the planning unit to the family (ManyToMany relationship)
-                planning_unit.family.add(family)
-                created_count += 1
+                # Wrap each planning unit creation in its own atomic transaction
+                with transaction.atomic():
+                    # Create the planning unit without attributes
+                    planning_unit = PlanningUnit.objects.create(
+                        geometry=geometry,
+                    )
+                    # Add the planning unit to the family (ManyToMany relationship)
+                    planning_unit.family.add(family)
+                    created_count += 1
+                    
             except Exception as e:
                 self.stdout.write(
                     self.style.ERROR(f"Failed to create planning unit {i}: {str(e)}")
                 )
+                failed_count += 1
                 # Continue with other features even if one fails
+
+        # Log summary
+        if failed_count > 0:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Import completed with {failed_count} failures out of {len(features)} features"
+                )
+            )
+        else:
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"All {len(features)} features imported successfully"
+                )
+            )
 
         return created_count
 
