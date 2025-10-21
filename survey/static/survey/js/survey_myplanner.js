@@ -124,9 +124,10 @@ function takeSurvey(surveyId, responseId){
                 });
                 showSaveButton();
             }
-            if (data.layer_groups) {
-                $('#myplanner-survey-layers-list').html(data.layer_groups);
+            if (data.layer_groups_html) {
+                $('#myplanner-survey-layers-list').html(data.layer_groups_html);
                 $('#myplanner-survey-layers-slideup-button').show();
+                enableSurveyLayerControls(data.layer_groups);
             } else {
                 $('#myplanner-survey-layers-slideup-button').hide();
             }
@@ -138,6 +139,44 @@ function takeSurvey(surveyId, responseId){
             hideNavButtons();
         }
     });
+}
+
+function enableSurveyLayerControls(layerGroups) {
+    // Enable layer controls based on the provided layer groups
+    // ensure layer objects exist in app.viewModel
+    for (let group_idx in layerGroups) {
+        let group = layerGroups[group_idx];
+        for (let i = 0; i < group.layers.length; i++) {
+            let layer = group.layers[i];
+            app.viewModel.getOrCreateLayer(
+                {
+                    id: layer.id,
+                    name: layer.name,
+                    slug_name: layer.slug_name,
+                }, //layer_obj
+                null, //parent
+                "return", //action
+                null //event
+            );
+            if (layer.auto_show) {
+                app.viewModel.getLayerById(layer.id).activateLayer();
+            }
+        }
+    }
+
+}
+
+app.survey = {}
+
+app.survey.toggleSurveyLayer = function(event, layer_id) {
+    let layer = app.viewModel.getLayerById(layer_id);
+    if (layer) {
+        if (layer.active() && event.target.checked === false){
+            layer.deactivateLayer();
+        } else if (!layer.active() && event.target.checked === true){
+            layer.activateLayer();
+        }
+    }
 }
 
 function loadNextSurveyScenario(surveyId, responseId, nextScenarioId) {

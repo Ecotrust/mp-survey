@@ -206,8 +206,8 @@ def survey_start(request, surveypk, responsepk=None):
     
     next_scenario = response.survey.get_scenarios().first()
 
+    layer_groups = {}
     if SurveyLayerGroup.objects.filter(survey=response.survey).exists():
-        layer_groups = {}
         for group in response.survey.survey_layer_groups_survey.all().order_by('order'):
             layer_groups[group.id] = {
                 'name': group.name,
@@ -216,7 +216,8 @@ def survey_start(request, surveypk, responsepk=None):
             for layer_order in group.survey_layer_orders_layer_group.all().order_by('order'):
                 layer_groups[group.id]['layers'].append({
                     'name': layer_order.layer.name,
-                    'layer_id': layer_order.layer.id,
+                    'id': layer_order.layer.id,
+                    'slug_name': layer_order.layer.slug_name,
                     'order': layer_order.order,
                     'auto_show': layer_order.auto_show
                 })
@@ -235,7 +236,8 @@ def survey_start(request, surveypk, responsepk=None):
         'html': get_response_form(response, request).content.decode('utf-8'),
         'response_id': response.id,
         'survey_id': response.survey.id,
-        'layer_groups': layer_group_html,
+        'layer_groups': layer_groups,
+        'layer_groups_html': layer_group_html,
         'next_scenario_id': next_scenario.id if next_scenario else False
     }) 
 
