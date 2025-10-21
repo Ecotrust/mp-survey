@@ -231,6 +231,49 @@ class Survey(models.Model):
         verbose_name = "Survey"
         verbose_name_plural = "Surveys"
 
+class SurveyLayerGroup(models.Model):
+    name = models.CharField(max_length=255)
+    order = models.PositiveIntegerField(help_text="Order of the layer group in the survey.")
+    survey = models.ForeignKey(
+        Survey,
+        on_delete=models.CASCADE,
+        related_name='survey_layer_groups_survey',
+        help_text="The survey this layer group belongs to."
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Survey Layer Group"
+        verbose_name_plural = "Survey Layer Groups"
+
+class SurveyLayerOrder(models.Model):
+    auto_show = models.BooleanField(
+        default=False,
+        help_text="Check if this layer should be shown by default when the survey is loaded."
+    )
+    order = models.PositiveIntegerField(help_text="Order of the layer in the group.")
+    layer = models.ForeignKey(
+        'layers.Layer',
+        on_delete=models.CASCADE,
+        related_name='survey_layer_orders_layer',
+    )
+    layer_group = models.ForeignKey(
+        SurveyLayerGroup,
+        on_delete=models.CASCADE,
+        related_name='survey_layer_orders_layer_group',
+        help_text="The survey layer group this layer belongs to."
+    )
+
+    def __str__(self):
+        return f"{self.layer.name} in {self.layer_group.name}"
+
+    class Meta:
+        verbose_name = "Survey Layer Order"
+        verbose_name_plural = "Survey Layer Orders"
+        unique_together = ('layer', 'layer_group')
+
 class Scenario(models.Model):
     name = models.CharField(max_length=255)
     order = models.PositiveIntegerField(help_text="Order of the scenario in the survey.")

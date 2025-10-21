@@ -1,6 +1,10 @@
 from django.contrib import admin
 import nested_admin
-from .models import Question, SurveyQuestionOption, ScenarioQuestionOption, PlanningUnitQuestionOption, Survey, Scenario, SurveyQuestion, ScenarioQuestion, PlanningUnitQuestion, SurveyResponse
+from .models import (
+    SurveyQuestionOption, ScenarioQuestionOption, PlanningUnitQuestionOption, 
+    Survey, Scenario, SurveyQuestion, ScenarioQuestion, PlanningUnitQuestion, 
+    SurveyResponse, SurveyLayerGroup, SurveyLayerOrder
+)
 
 class SurveyQuestionOptionsInline(nested_admin.NestedTabularInline):
     model = SurveyQuestionOption
@@ -16,6 +20,17 @@ class PlanningUnitQuestionOptionsInline(nested_admin.NestedTabularInline):
     model = PlanningUnitQuestionOption
     extra = 2
     classes = ['collapse', 'show']
+    
+class LayerOrderInline(nested_admin.NestedTabularInline):
+    model = SurveyLayerOrder
+    extra = 3
+    classes = ['collapse', 'show']
+
+class LayerGroupsInline(nested_admin.NestedStackedInline):
+    model = SurveyLayerGroup
+    extra = 1
+    classes = ['collapse', 'show']
+    inlines = [LayerOrderInline]
 
 class SurveyQuestionsInline(nested_admin.NestedStackedInline):
     model = SurveyQuestion
@@ -37,7 +52,7 @@ class PlanningUnitQuestionsInline(nested_admin.NestedStackedInline):
 
 class ScenarioInline(nested_admin.NestedStackedInline):
     model = Scenario
-    extra = 1
+    extra = 0
     classes = ['collapse', 'show']
     inlines = [ScenarioQuestionsInline, PlanningUnitQuestionsInline]
 
@@ -45,7 +60,7 @@ class SurveyAdmin(nested_admin.NestedModelAdmin):
     list_display = ('title', 'description', 'created_at', 'updated_at')
     search_fields = ('name', 'description')
     ordering = ('-created_at',)
-    inlines = [SurveyQuestionsInline, ScenarioInline]
+    inlines = [LayerGroupsInline, SurveyQuestionsInline, ScenarioInline]
 
 
 
@@ -56,6 +71,6 @@ class SurveyAdmin(nested_admin.NestedModelAdmin):
 # admin.site.register(QuestionOption)
 # admin.site.register(Survey)
 # admin.site.register(QuestionSurveyAssociation)
-# admin.site.register(SurveyResponse)
+admin.site.register(SurveyResponse)
 
 admin.site.register(Survey, SurveyAdmin)
