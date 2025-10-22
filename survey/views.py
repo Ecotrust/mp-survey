@@ -211,6 +211,7 @@ def survey_start(request, surveypk, responsepk=None):
         for group in response.survey.survey_layer_groups_survey.all().order_by('order'):
             layer_groups[group.id] = {
                 'name': group.name,
+                'id': group.id,
                 'layers': []
             }
             for layer_order in group.survey_layer_orders_layer_group.all().order_by('order'):

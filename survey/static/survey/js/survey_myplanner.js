@@ -258,3 +258,31 @@ function toggleLayersPanel() {
         showLayersPanel();
     }
 }
+
+function showLayersGroup(group_id) {
+    let group_container_id = '#'+group_id;
+    let group_header_id = group_container_id+"-header";
+    let group_toggle_icon = group_header_id+" span.myplanner-survey-layer-group-collapse i";
+    $(group_toggle_icon).removeClass('fa-chevron-right');
+    $(group_toggle_icon).addClass('fa-chevron-down');
+    $(group_header_id).addClass('active');
+    $(group_container_id).slideDown(300, function(){});
+}
+
+function hideLayersGroup(group_id) {
+    let group_container_id = '#'+group_id;
+    let group_header_id = group_container_id+"-header";
+    let group_toggle_icon = group_header_id+" span.myplanner-survey-layer-group-collapse i";
+    $(group_toggle_icon).removeClass('fa-chevron-down');
+    $(group_toggle_icon).addClass('fa-chevron-right');
+    $(group_header_id).removeClass('active');
+    $(group_container_id).slideUp(300, function(){});
+}
+
+function toggleLayersGroup(group_id) {
+    if ($('#'+group_id+"-header").hasClass('active')) {
+        hideLayersGroup(group_id);
+    } else {
+        showLayersGroup(group_id);
+    }
+}
