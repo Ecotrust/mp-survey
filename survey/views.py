@@ -2,7 +2,7 @@ from urllib import response
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
-from .models import Survey, SurveyLayerGroup, SurveyResponse
+from .models import Survey, SurveyLayerGroup, SurveyResponse, ScenarioAnswer
 from datetime import datetime
 from django.shortcuts import render
 from .forms import SurveyResponseForm, ScenarioForm
@@ -173,10 +173,18 @@ def get_survey_response(request, surveypk, responsepk=None):
             elif response is None:
                 response = existing_responses.first()
     
-    # if no existing response, create a new one
+    # if no existing response, or multiple allowed, create a new one
     if response is None:
         try:
+            if SurveyResponse.objects.filter(survey=survey, user=user).exists():
+                raise NotImplementedError('Multiple responses per user not yet implemented.')
             response = SurveyResponse.objects.create(survey=survey, user=user)
+        except NotImplementedError as e:
+            return {
+                'status': 'error',
+                'status_code': 501,
+                'message': str(e)
+            }
         except Exception as e:
             return {
                 'status': 'error',
@@ -243,6 +251,7 @@ def survey_start(request, surveypk, responsepk=None):
     }) 
 
 # def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_scenario_form.html'):
+# def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_myplanner_scenario_form.html'):
 def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_response_form.html'):
     try:
         response = SurveyResponse.objects.get(pk=response_id, user=request.user)
@@ -271,6 +280,8 @@ def get_survey_scenario_form(request, response_id, scenario_id, template='survey
         'user': response.user,
         'form': ScenarioForm(response=response, scenario=scenario)
     }
+
+    # TODO: Get Scenario Response, answers and summary
     rendered = render(request, template, context)
     return JsonResponse({
         'status': 'success',

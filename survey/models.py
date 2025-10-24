@@ -195,7 +195,7 @@ class Survey(models.Model):
     end_date = models.DateTimeField(blank=True, null=True)
     allow_multiple_responses = models.BooleanField(
         default=False,
-        help_text="Check if users can submit multiple responses to this survey."
+        help_text="[NOT YET IMPLEMENTED!]: Check if users can submit multiple responses to this survey."
     )
     groups = models.ManyToManyField(
         'mapgroups.MapGroup',
@@ -402,6 +402,7 @@ class SurveyResponse(models.Model):
     class Meta:
         verbose_name = "Survey Response"
         verbose_name_plural = "Survey Responses"
+        # This unique breaks the 'allow_multiple_responses' logic
         unique_together = ('survey', 'user')
 
 def get_answer_value(answer):
