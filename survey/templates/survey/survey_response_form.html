@@ -2,32 +2,35 @@
 <body>
 
 {% block content %}
-    <h2>Survey Response</h2>
-    <form method="post">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
-        {% for field in form %}
-            <div class="form-group">
-                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-                {{ field }}
-                {{ field.errors }}
-                {% if field.help_text %}
-                    <small class="form-text text-muted">{{ field.help_text }}</small>
+    <h3>{{ survey.title }}</h3>
+    {% block myplanner_survey_form %}
+        <form method="post">
+            {% csrf_token %}
+            {% block myplanner_survey_form_inner %}
+                {{ form.non_field_errors }}
+                {% for field in form %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {{ field.errors }}
+                        {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+
+                {% if survey_questions %}
+                    <h3>Survey Questions</h3>
+                    {% for question in survey_questions %}
+                        <div class="form-group">
+                            <label>{{ question.text }}</label>
+                            {{ question.form_field }}
+                        </div>
+                    {% endfor %}
                 {% endif %}
-            </div>
-        {% endfor %}
-
-        {% if survey_questions %}
-            <h3>Survey Questions</h3>
-            {% for question in survey_questions %}
-                <div class="form-group">
-                    <label>{{ question.text }}</label>
-                    {{ question.form_field }}
-                </div>
-            {% endfor %}
-        {% endif %}
-
-    </form>
+            {% endblock myplanner_survey_form_inner %}
+        </form>
+    {% endblock %}
 {% endblock %}
 
 </body> 

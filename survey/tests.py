@@ -761,7 +761,6 @@ class SurveyViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 404)
 
-
 class SurveyAPITests(TestCase):
     """Test cases for Survey API functionality"""
     
@@ -833,7 +832,6 @@ class SurveyAPITests(TestCase):
         # Should return the same response ID
         self.assertEqual(data1['response_id'], data2['response_id'])
 
-
 class CoinAssignmentTests(TestCase):
     """Test cases for coin assignment functionality"""
     
@@ -858,8 +856,19 @@ class CoinAssignmentTests(TestCase):
             survey=self.survey,
             user=self.user
         )
-        self.planning_unit = PlanningUnit.objects.create()
+        polygon = Polygon(((0, 0), (0, 1), (1, 1), (1, 0), (0, 0)))
+        polygon2 = Polygon(((1, 0), (1, 1), (2, 1), (2, 0), (1, 0)))
+        multipolygon = MultiPolygon(polygon)
+        multipolygon2 = MultiPolygon(polygon2)
+        
+        self.planning_unit = PlanningUnit.objects.create(
+            geometry=multipolygon
+        )
+        self.planning_unit2 = PlanningUnit.objects.create(
+            geometry=multipolygon2
+        )
         self.planning_unit.family.add(self.pu_family)
+        self.planning_unit2.family.add(self.pu_family)  
         
     def test_coin_assignment_creation(self):
         """Test creating a coin assignment"""
@@ -874,7 +883,26 @@ class CoinAssignmentTests(TestCase):
         self.assertEqual(assignment.response, self.response)
         self.assertEqual(assignment.scenario, self.scenario)
         self.assertEqual(assignment.planning_unit, self.planning_unit)
-        
+
+        assignment2 = CoinAssignment.objects.create(
+            response=self.response,
+            scenario=self.scenario,
+            planning_unit=self.planning_unit2,
+            coins_assigned=74
+        )
+
+        self.assertEqual(assignment2.coins_assigned, 74)
+        self.assertEqual(assignment2.response, self.response)
+        self.assertEqual(assignment2.scenario, self.scenario)
+        self.assertEqual(assignment2.planning_unit, self.planning_unit2)
+
+        self.assertEqual(self.response.completed, False)
+
+        assignment2.coins_assigned = 75
+        assignment2.save()
+
+        self.assertEqual(self.response.completed, True)
+
     def test_coin_assignment_unique_constraint(self):
         """Test unique constraint on coin assignments"""
         CoinAssignment.objects.create(
@@ -892,3 +920,4 @@ class CoinAssignmentTests(TestCase):
                 planning_unit=self.planning_unit,
                 coins_assigned=50
             )
+

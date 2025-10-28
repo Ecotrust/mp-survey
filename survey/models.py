@@ -382,23 +382,72 @@ class SurveyResponse(models.Model):
     @property
     def completed(self):
         # A response is considered complete if all required questions have been answered
+        if not self.survey_questions_complete():
+                return False
+        scenarios_status = self.scenarios_status()
+        for scenario_key in scenarios_status.keys():
+            if not scenarios_status[scenario_key]['scenario_completed']:
+                return False
+        return True
+    
+    def survey_questions_complete(self):
         required_questions = self.survey.survey_questions_survey.filter(is_required=True)
         for question in required_questions:
             if not self.surveyanswer_response.filter(question=question).exists():
                 return False
-        for scenario in self.survey.get_scenarios():
-            required_scenario_questions = scenario.scenario_questions_scenario.filter(is_required=True)
-            for question in required_scenario_questions:
-                if not self.scenarioanswer_response.filter(question=question).exists():
-                    return False
-            if scenario.is_spatial:
-                required_pu_questions = scenario.planning_unit_questions_scenario.filter(is_required=True)
-                for pu in PlanningUnit.objects.filter(family=scenario.pu_family):
-                    for question in required_pu_questions:
-                        if not self.planningunitanswer_response.filter(question=question, planning_unit=pu).exists():
-                            return False
         return True
+
+    def scenario_status(self, scenario_id):
+        scenario = self.survey.get_scenarios().get(id=scenario_id)
+        scenario_status = {
+            'is_weighted': scenario.is_weighted,
+            'coins_required': scenario.require_all_coins_used,
+            'coins_assigned': 0,
+            'questions_completed': None,
+            'planning_unit_questions_completed': None,
+            'coins_completed': None,
+            'scenario_completed': False
+        }
+        required_scenario_questions = scenario.scenario_questions_scenario.filter(is_required=True)
+        for question in required_scenario_questions:
+            if not self.scenarioanswer_response.filter(question=question).exists():
+                scenario_status['questions_completed'] = False
+        if scenario_status['questions_completed'] is None:
+            scenario_status['questions_completed'] = True
+        if scenario.is_spatial:
+            required_pu_questions = scenario.planning_unit_questions_scenario.filter(is_required=True)
+            for pu in PlanningUnit.objects.filter(family=scenario.pu_family):
+                for question in required_pu_questions:
+                    if not self.planningunitanswer_response.filter(question=question, planning_unit=pu).exists():
+                        scenario_status['planning_unit_questions_completed'] = False
+            if scenario.is_weighted and scenario.require_all_coins_used:
+                scenario_status['coins_assigned'] = sum(
+                    ca.coins_assigned for ca in self.coin_assignments_response.filter(
+                        scenario=scenario
+                    )
+                )
+                if scenario_status['coins_assigned'] != scenario.total_coins:
+                    scenario_status['coins_completed'] =False
+        if scenario_status['planning_unit_questions_completed'] is None:
+            scenario_status['planning_unit_questions_completed'] = True
+        if scenario_status['coins_completed'] is None:
+            scenario_status['coins_completed'] = True
+        if (scenario_status['questions_completed'] and
+            scenario_status['planning_unit_questions_completed'] and
+            scenario_status['coins_completed']):
+            scenario_status['scenario_completed'] = True
+        return scenario_status
+
     
+    def scenarios_status(self):
+        scenario_status = {}
+        for scenario in self.survey.get_scenarios():
+            scenario_status[scenario.id] = self.scenario_status(scenario.id)
+        return scenario_status
+    
+    # def response_status(self):
+
+
     class Meta:
         verbose_name = "Survey Response"
         verbose_name_plural = "Survey Responses"
