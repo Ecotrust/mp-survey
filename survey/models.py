@@ -406,7 +406,7 @@ class SurveyResponse(models.Model):
             'questions_completed': None,
             'planning_unit_questions_completed': None,
             'coins_completed': None,
-            'scenario_completed': False
+            'scenario_completed': False,
         }
         required_scenario_questions = scenario.scenario_questions_scenario.filter(is_required=True)
         for question in required_scenario_questions:

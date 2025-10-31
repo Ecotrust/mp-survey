@@ -182,6 +182,14 @@ class ScenarioForm(Form):
 
                 # self.fields = populate_fields(questions, answerModel=ScenarioAnswer)
 
+            if scenario.is_weighted:
+                available_coins = response.scenario_status(scenario.id)['coins_available']
+                self.fields['scenario_{}_coin_assignment'.format(scenario.id)] = forms.IntegerField(
+                    label='Assign Coins (Available: {})'.format(available_coins),
+                    min_value=0,
+                    max_value=available_coins
+                )
+
             pu_questions = PlanningUnitQuestion.objects.filter(scenario=scenario).order_by('order')
             # fields = {}
             for question in pu_questions:
