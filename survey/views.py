@@ -251,8 +251,8 @@ def survey_start(request, surveypk, responsepk=None):
     }) 
 
 # def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_scenario_form.html'):
-# def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_myplanner_scenario_form.html'):
-def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_response_form.html'):
+# def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_response_form.html'):
+def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_myplanner_scenario_form.html'):
     try:
         response = SurveyResponse.objects.get(pk=response_id, user=request.user)
     except SurveyResponse.DoesNotExist:
@@ -270,12 +270,15 @@ def get_survey_scenario_form(request, response_id, scenario_id, template='survey
             'message': 'Scenario not found in this survey.'
         }, status=404)
     
+    scenario_status = response.scenario_status(scenario.pk)
+    
     next_scenario = response.survey.get_next_scenario(scenario_id)
 
     context = {
         'response': response,
         'survey': response.survey,
         'scenario': scenario,
+        'scenario_status': scenario_status,
         'questions': scenario.scenario_questions_scenario.all(),
         'user': response.user,
         'form': ScenarioForm(response=response, scenario=scenario)

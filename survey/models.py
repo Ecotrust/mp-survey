@@ -436,6 +436,8 @@ class SurveyResponse(models.Model):
             scenario_status['planning_unit_questions_completed'] and
             scenario_status['coins_completed']):
             scenario_status['scenario_completed'] = True
+        scenario_status['coins_available'] = scenario.total_coins - scenario_status['coins_assigned']   
+        scenario_status['areas_selected'] = self.coin_assignments_response.filter(scenario=scenario).count()
         return scenario_status
 
     

@@ -883,6 +883,19 @@ class CoinAssignmentTests(TestCase):
         self.assertEqual(assignment.response, self.response)
         self.assertEqual(assignment.scenario, self.scenario)
         self.assertEqual(assignment.planning_unit, self.planning_unit)
+        self.assertEqual(self.response.completed, False)
+        
+        current_scenario_status = self.response.scenario_status(self.scenario.pk)
+        self.assertEqual(current_scenario_status['is_weighted'], True)
+        self.assertEqual(current_scenario_status['coins_required'], True)
+        self.assertEqual(current_scenario_status['coins_assigned'], 25)
+        self.assertEqual(current_scenario_status['questions_completed'], True)
+        self.assertEqual(current_scenario_status['planning_unit_questions_completed'], True)
+        self.assertEqual(current_scenario_status['coins_completed'], False)
+        self.assertEqual(current_scenario_status['scenario_completed'], False)
+        self.assertEqual(current_scenario_status['coins_available'], 75)
+        self.assertEqual(current_scenario_status['areas_selected'], 1)
+
 
         assignment2 = CoinAssignment.objects.create(
             response=self.response,
@@ -895,6 +908,14 @@ class CoinAssignmentTests(TestCase):
         self.assertEqual(assignment2.response, self.response)
         self.assertEqual(assignment2.scenario, self.scenario)
         self.assertEqual(assignment2.planning_unit, self.planning_unit2)
+        
+        current_scenario_status = self.response.scenario_status(self.scenario.pk)
+        self.assertEqual(current_scenario_status['coins_assigned'], 99)
+        self.assertEqual(current_scenario_status['coins_completed'], False)
+        self.assertEqual(current_scenario_status['scenario_completed'], False)
+        self.assertEqual(current_scenario_status['coins_available'], 1)
+        self.assertEqual(current_scenario_status['areas_selected'], 2)
+
 
         self.assertEqual(self.response.completed, False)
 
@@ -902,6 +923,13 @@ class CoinAssignmentTests(TestCase):
         assignment2.save()
 
         self.assertEqual(self.response.completed, True)
+        
+        current_scenario_status = self.response.scenario_status(self.scenario.pk)
+        self.assertEqual(current_scenario_status['coins_assigned'], 100)
+        self.assertEqual(current_scenario_status['coins_completed'], True)
+        self.assertEqual(current_scenario_status['scenario_completed'], True)
+        self.assertEqual(current_scenario_status['coins_available'], 0)
+        self.assertEqual(current_scenario_status['areas_selected'], 2)
 
     def test_coin_assignment_unique_constraint(self):
         """Test unique constraint on coin assignments"""
