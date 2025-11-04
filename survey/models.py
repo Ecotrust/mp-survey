@@ -311,7 +311,10 @@ class Scenario(models.Model):
             ('intersects', 'Intersection'),
             ('is_within', 'Is Within'),
         ],
-        help_text="Select the snapping behavior for planning unit selection."
+        help_text="Select the snapping behavior for planning unit selection.",
+        default='default',
+        null=True,
+        blank=True,
     )
     is_spatial = models.BooleanField(
         default=True,
