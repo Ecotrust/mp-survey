@@ -72,45 +72,29 @@ function takeSurvey(surveyId, responseId){
             $('#myplanner-survey-dialog-body').html(data.html);
             if (data.next_scenario_id) {
                 $('#myplanner-survey-dialog-next').off('click');
-                $('#myplanner-survey-dialog-next').on('click', function() {
-                    let csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                    // AJAX call to save form data
-                    $.ajax({
-                        type: 'POST',
-                        url: '/survey/start/'+surveyId+'/'+data.response_id+'/',
-                        headers: { 'X-CSRFToken': csrftoken },
-                        data: $('#myplanner-survey-dialog-body form').serialize(),
-                        success: function(saveData) {
+                $('#myplanner-survey-dialog-next').on('click', function(e) {
+                    submitSurveyForm(
+                        '/survey/start/'+surveyId+'/'+data.response_id+'/', 
+                        function(saveData) {
                             if (saveData.status === 'success') {
                                 // window.alert('Survey responses saved. Thank you!');
                                 // refreshSurveyContent();
                                 // hideSurveyForm();
-                                loadNextSurveyScenario(surveyId, responseId, data.next_scenario_id);
+                                loadNextSurveyScenario(surveyId, data.response_id, data.scenario_id, data.next_scenario_id);
                             } else {
                                 window.alert('Error saving survey responses. Please try again.');
                             }
-                        },
-                        error: function() {
-                            window.alert('Error saving survey responses. Please try again.');
                         }
-                    });
+                    );
                     e.preventDefault();
-                    // Logic to load next scenario if applicable
-                    // For now, just hide the dialog
-                    // loadNextSurveyScenario(surveyId, responseId, data.next_scenario_id);
                 });
                 showNextButton();
             } else {
                 $('#myplanner-survey-dialog-save').off('click');
                 $('#myplanner-survey-dialog-save').on('click', function(e) {
-                    let csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                    // AJAX call to save form data
-                    $.ajax({
-                        type: 'POST',
-                        url: '/survey/start/'+surveyId+'/'+data.response_id+'/',
-                        headers: { 'X-CSRFToken': csrftoken },
-                        data: $('#myplanner-survey-dialog-body form').serialize(),
-                        success: function(saveData) {
+                    submitSurveyForm(
+                        '/survey/start/'+surveyId+'/'+data.response_id+'/',
+                        function(saveData) {
                             if (saveData.status === 'success') {
                                 window.alert('Survey responses saved. Thank you!');
                                 refreshSurveyContent();
@@ -118,11 +102,8 @@ function takeSurvey(surveyId, responseId){
                             } else {
                                 window.alert('Error saving survey responses. Please try again.');
                             }
-                        },
-                        error: function() {
-                            window.alert('Error saving survey responses. Please try again.');
                         }
-                    });
+                    );
                     e.preventDefault();
                 });
                 showSaveButton();
@@ -182,7 +163,7 @@ app.survey.toggleSurveyLayer = function(event, layer_id) {
     }
 }
 
-function loadNextSurveyScenario(surveyId, responseId, nextScenarioId) {
+function loadNextSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId) {
     // TODO: Ajax call to load next scenario
     // window.alert('Loading next scenario. Id: ' + nextScenarioId);
     $.ajax({
@@ -193,13 +174,24 @@ function loadNextSurveyScenario(surveyId, responseId, nextScenarioId) {
             if (data.next_scenario_id) {
                 $('#myplanner-survey-dialog-next').off('click');
                 $('#myplanner-survey-dialog-next').on('click', function() {
-                    loadNextSurveyScenario(surveyId, responseId, data.next_scenario_id);
+                    loadNextSurveyScenario(surveyId, responseId, data.scenario_id, data.next_scenario_id);
                 });
                 showNextButton();
             } else {
                 $('#myplanner-survey-dialog-save').off('click');
                 $('#myplanner-survey-dialog-save').on('click', function(e) {
-                    finishSurvey(responseId);
+                    submitSurveyForm(
+                        '/survey/scenario/'+responseId+'/'+data.scenario_id+'/',
+                        function(saveData) {
+                            if (saveData.status === 'success') {
+                                window.alert('Scenario responses saved. Thank you!');
+                                refreshSurveyContent();
+                                hideSurveyForm();
+                            } else {
+                                window.alert('Error saving survey responses. Please try again.');
+                            }
+                        }
+                    );
                     e.preventDefault();
                 });
                 showSaveButton();
@@ -214,23 +206,16 @@ function loadNextSurveyScenario(surveyId, responseId, nextScenarioId) {
     });
 }
 
-function finishSurvey(responseId) {
+function submitSurveyForm(url, successCallback) {
     let csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
     // AJAX call to save form data
     $.ajax({
         type: 'POST',
-        url: '/survey/start/' + surveyId + '/' + responseId + '/',
+        url: url,
         headers: { 'X-CSRFToken': csrftoken },
         data: $('#myplanner-survey-dialog-body form').serialize(),
-        success: function(saveData) {
-            if (saveData.status === 'success') {
-                window.alert('Survey responses saved. Thank you!');
-                refreshSurveyContent();
-                hideSurveyForm();
-            } else {
-                window.alert('Error saving survey responses. Please try again.');
-            }
-        },
+        success: successCallback,
         error: function() {
             window.alert('Error saving survey responses. Please try again.');
         }

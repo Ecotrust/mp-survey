@@ -82,6 +82,34 @@ def populate_question_fields(instance, question, field_name, initial_answer=None
             
     # return fields
 
+def save_related_answer(question, answer, answer_value, choiceModel):
+    # Handle different data types
+    if question.question_type == 'text':
+        answer.text_answer = answer_value
+    elif question.question_type == 'number':
+        answer.numeric_answer = int(answer_value)
+        answer.text_answer = str(answer_value)
+    elif question.question_type == 'single_choice':
+        # answer_value is the option_id
+        answer_choice = choiceModel.objects.filter(id=answer_value, question=question).first()
+        if answer_choice:
+            answer.selected_options = [{"option_id": answer_choice.id, "text": answer_choice.text}]
+            answer.text_answer = answer_choice.text
+    elif question.question_type == 'multiple_choice':
+        # answer_value is a list of option_ids
+        answer.selected_options = []
+        for option_id in answer_value:
+            answer_choice = choiceModel.objects.filter(id=int(option_id), question=question).first()
+            if answer_choice:
+                answer.selected_options.append({"option_id": answer_choice.id, "text": answer_choice.text})
+    # elif question.question_type == 'boolean':
+    #     answer_value = str(answer_value)
+    # elif question.question_type == 'date':
+    #     if answer_value:
+    #         answer_value = answer_value.isoformat()
+
+    answer.save()
+
 class SurveyResponseForm(ModelForm):
     """
     Dynamic form that generates fields based on SurveyQuestions
@@ -108,10 +136,11 @@ class SurveyResponseForm(ModelForm):
 
                 populate_question_fields(self, question, field_name, initial_answer)
     
-    def save_answers(self, survey_response, survey):
+    def save_answers(self, survey_response):
         """
         Save the form data as SurveyAnswer objects
         """
+        survey = survey_response.survey
         questions = SurveyQuestion.objects.filter(survey=survey)
         
         for question in questions:
@@ -122,45 +151,20 @@ class SurveyResponseForm(ModelForm):
                     response=survey_response,
                     question=question,
                 )
-                
-                # Handle different data types
-                if question.question_type == 'text':
-                    answer.text_answer = answer_value
-                elif question.question_type == 'number':
-                    answer.numeric_answer = int(answer_value)
-                    answer.text_answer = str(answer_value)
-                elif question.question_type == 'single_choice':
-                    # answer_value is the option_id
-                    answer_choice = SurveyQuestionOption.objects.filter(id=answer_value, question=question).first()
-                    if answer_choice:
-                        answer.selected_options = [{"option_id": answer_choice.id, "text": answer_choice.text}]
-                        answer.text_answer = answer_choice.text
-                elif question.question_type == 'multiple_choice':
-                    # answer_value is a list of option_ids
-                    answer.selected_options = []
-                    for option_id in answer_value:
-                        answer_choice = SurveyQuestionOption.objects.filter(id=int(option_id), question=question).first()
-                        if answer_choice:
-                            answer.selected_options.append({"option_id": answer_choice.id, "text": answer_choice.text})
-                # elif question.question_type == 'boolean':
-                #     answer_value = str(answer_value)
-                # elif question.question_type == 'date':
-                #     if answer_value:
-                #         answer_value = answer_value.isoformat()
 
-                answer.save()
-        
+                save_related_answer(question, answer, answer_value, SurveyQuestionOption)
+                
         return survey_response
 
 
 class ScenarioForm(Form):
     """
     Dynamic form that generates fields based on ScenarioQuestions
-    and PlanningUnitQuestions associated with a Scenario.
+    associated with a Scenario.
     """
     
     class Meta:
-        model = SurveyResponse
+        # model = SurveyResponse
         fields = []  # We'll add fields dynamically
     
     def __init__(self, *args, **kwargs):
@@ -190,12 +194,33 @@ class ScenarioForm(Form):
                     max_value=available_coins
                 )
 
-            pu_questions = PlanningUnitQuestion.objects.filter(scenario=scenario).order_by('order')
-            # fields = {}
-            for question in pu_questions:
-                field_name = f'scenario_{scenario.id}_pu_question_{question.id}'
-                answer = PlanningUnitAnswer.objects.filter(response=response, question=question).first()
-                initial_answer = answer.value if answer else None
+            # pu_questions = PlanningUnitQuestion.objects.filter(scenario=scenario).order_by('order')
+            # # fields = {}
+            # for question in pu_questions:
+            #     field_name = f'scenario_{scenario.id}_pu_question_{question.id}'
+            #     answer = PlanningUnitAnswer.objects.filter(response=response, question=question).first()
+            #     initial_answer = answer.value if answer else None
 
-                populate_question_fields(self, question, field_name, initial_answer)
-                # self.fields += populate_fields(pu_questions, answerModel=PlanningUnitAnswer)
+            #     populate_question_fields(self, question, field_name, initial_answer)
+            #     # self.fields += populate_fields(pu_questions, answerModel=PlanningUnitAnswer)
+
+
+    def save_answers(self, response, scenario):
+        """
+        Save the form data as ScenarioAnswer objects
+        """
+        # Save scenario questions
+        scenario_questions = scenario.scenario_questions_scenario.all()
+        
+        for question in scenario_questions:
+            field_name = f'scenario_{scenario.id}_question_{question.id}'
+            if field_name in self.cleaned_data:
+                answer_value = self.cleaned_data[field_name]
+                answer, created = ScenarioAnswer.objects.get_or_create(
+                    response=response,
+                    question=question,
+                )
+
+                save_related_answer(question, answer, answer_value, ScenarioQuestionOption)
+
+        return response

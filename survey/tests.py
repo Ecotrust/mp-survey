@@ -716,7 +716,7 @@ class SurveyViewTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         
-    def test_get_survey_scenario_form(self):
+    def test_survey_scenario(self):
         """Test getting scenario form"""
         scenario = Scenario.objects.create(
             name='Test Scenario',
@@ -733,7 +733,7 @@ class SurveyViewTests(TestCase):
         )
         
         response = self.client.get(
-            reverse('survey:get_survey_scenario_form', kwargs={
+            reverse('survey:survey_scenario', kwargs={
                 'response_id': survey_response.id,
                 'scenario_id': scenario.id
             })
@@ -743,7 +743,7 @@ class SurveyViewTests(TestCase):
         self.assertEqual(data['status'], 'success')
         self.assertIn('html', data)
         
-    def test_get_survey_scenario_form_nonexistent_response(self):
+    def test_survey_scenario_nonexistent_response(self):
         """Test getting scenario form with non-existent response"""
         scenario = Scenario.objects.create(
             name='Test Scenario',
@@ -754,7 +754,7 @@ class SurveyViewTests(TestCase):
         self.client.login(username='testuser', password='testpass123')
         
         response = self.client.get(
-            reverse('survey:get_survey_scenario_form', kwargs={
+            reverse('survey:survey_scenario', kwargs={
                 'response_id': 99999,
                 'scenario_id': scenario.id
             })

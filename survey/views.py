@@ -65,7 +65,7 @@ def save_survey_response(request, response):
         form = SurveyResponseForm(request.POST, survey=response.survey, instance=response)
         if form.is_valid():
             try:
-                form.save_answers(response, response.survey)
+                form.save_answers(response)
                 try:
                     response.save()
                 
@@ -252,7 +252,7 @@ def survey_start(request, surveypk, responsepk=None):
 
 # def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_scenario_form.html'):
 # def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_response_form.html'):
-def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_myplanner_scenario_form.html'):
+def survey_scenario(request, response_id, scenario_id, template='survey/survey_myplanner_scenario_form.html'):
     try:
         response = SurveyResponse.objects.get(pk=response_id, user=request.user)
     except SurveyResponse.DoesNotExist:
@@ -269,30 +269,67 @@ def get_survey_scenario_form(request, response_id, scenario_id, template='survey
             'status_code': 404,
             'message': 'Scenario not found in this survey.'
         }, status=404)
+    if request.method == 'POST':
+        
+        form = ScenarioForm(request.POST, response=response, scenario=scenario)
+        if form.is_valid():
+            try:
+                form.save_answers(response, scenario)
+                try:
+                    response.save()
+                
+                    return JsonResponse({
+                        'status': 'success',
+                        'status_code': 200,
+                        'message': 'Scenario answers saved successfully.',
+                        'response_id': response.id,
+                        'survey_id': response.survey.id
+                    })
+                
+                except Exception as e:
+                    return JsonResponse({
+                        'status': 'error',
+                        'status_code': 500,
+                        'message': 'Error saving survey response.'
+                    }, status=500)
+            except Exception as e:
+                return JsonResponse({
+                    'status': 'error',
+                    'status_code': 500,
+                    'message': 'Error saving scenario answers.'
+                }, status=500)
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'status_code': 400,
+                'message': 'There were errors in the form.',
+                'errors': form.errors
+            }, status=400)
+    else:
+        scenario_status = response.scenario_status(scenario.pk)
     
-    scenario_status = response.scenario_status(scenario.pk)
-    
-    next_scenario = response.survey.get_next_scenario(scenario_id)
+        next_scenario = response.survey.get_next_scenario(scenario.id)
 
-    context = {
-        'response': response,
-        'survey': response.survey,
-        'scenario': scenario,
-        'scenario_status': scenario_status,
-        'questions': scenario.scenario_questions_scenario.all(),
-        'user': response.user,
-        'form': ScenarioForm(response=response, scenario=scenario)
-    }
+        context = {
+            'response': response,
+            'survey': response.survey,
+            'scenario': scenario,
+            'scenario_status': scenario_status,
+            'questions': scenario.scenario_questions_scenario.all(),
+            'user': response.user,
+            'form': ScenarioForm(response=response, scenario=scenario)
+        }
 
-    # TODO: Get Scenario Response, answers and summary
-    rendered = render(request, template, context)
-    return JsonResponse({
-        'status': 'success',
-        'status_code': 200,
-        'message': 'Scenario form loaded.',
-        'html': rendered.content.decode('utf-8'),
-        'next_scenario_id': next_scenario.id if next_scenario else False
-    })
+        # TODO: Get Scenario Response, answers and summary
+        rendered = render(request, template, context)
+        return JsonResponse({
+            'status': 'success',
+            'status_code': 200,
+            'message': 'Scenario form loaded.',
+            'html': rendered.content.decode('utf-8'),
+            'scenario_id': scenario.id,
+            'next_scenario_id': next_scenario.id if next_scenario else False
+        })
 
 def get_response_form(response, request, template='survey/survey_response_form.html'):
     if response is None or request is None:
