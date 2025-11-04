@@ -2,10 +2,10 @@ from urllib import response
 from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
-from .models import Survey, SurveyLayerGroup, SurveyResponse, ScenarioAnswer
+from .models import Survey, SurveyLayerGroup, SurveyResponse, ScenarioAnswer, PlanningUnitAnswer
 from datetime import datetime
 from django.shortcuts import render
-from .forms import SurveyResponseForm, ScenarioForm
+from .forms import SurveyResponseForm, ScenarioForm, PlanningUnitForm
 
 def get_myplanner_js(request):
     js_tag = '<script src="/static/survey/js/survey_myplanner.js"></script>'
@@ -310,6 +310,24 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
     
         next_scenario = response.survey.get_next_scenario(scenario.id)
 
+        form = ScenarioForm(response=response, scenario=scenario)
+
+        if scenario.is_spatial:
+            # TODO: Load existing PU selection layer!
+            planning_unit_answers = PlanningUnitAnswer.objects.filter(response=response)
+
+            if scenario.is_weighted:
+                selected_planning_units = [{'area': x.planning_unit.geometry, 'coins': x.coins} for x in planning_unit_answers]
+            else:
+                selected_planning_units = [{'area': x.planning_unit, 'coins': None} for x in planning_unit_answers]
+
+            if len(form.fields) == 0 and len(selected_planning_units) == 0:
+                # No planning unit selected yet, redirect to area selection
+                return survey_scenario_area(request, response_id, scenario_id)
+        else:
+            selected_planning_units = []
+            
+
         context = {
             'response': response,
             'survey': response.survey,
@@ -317,7 +335,8 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
             'scenario_status': scenario_status,
             'questions': scenario.scenario_questions_scenario.all(),
             'user': response.user,
-            'form': ScenarioForm(response=response, scenario=scenario)
+            'form': form,
+            'selected_planning_units': selected_planning_units,
         }
 
         # TODO: Get Scenario Response, answers and summary
@@ -330,6 +349,86 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
             'scenario_id': scenario.id,
             'next_scenario_id': next_scenario.id if next_scenario else False
         })
+
+def survey_scenario_area(request, response_id, scenario_id, unit_id=None, template='survey/survey_myplanner_unit_form.html'):
+    try:
+        response = SurveyResponse.objects.get(pk=response_id, user=request.user)
+    except SurveyResponse.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'status_code': 404,
+            'message': 'Survey response not found.'
+        }, status=404)
+    
+    scenario = response.survey.get_scenarios().filter(id=scenario_id).first()
+    if scenario is None:
+        return JsonResponse({
+            'status': 'error',
+            'status_code': 404,
+            'message': 'Scenario not found in this survey.'
+        }, status=404)
+
+    if request.method == 'POST':
+        form = PlanningUnitForm(request.POST, response=response, scenario=scenario)
+        if form.is_valid():
+            try:
+                form.save_answers(response, scenario)
+                try:
+                    response.save()
+
+                    return JsonResponse({
+                        'status': 'success',
+                        'status_code': 200,
+                        'message': 'Planning unit answers saved successfully.',
+                        'response_id': response.id,
+                        'survey_id': response.survey.id
+                    })
+
+                except Exception as e:
+                    return JsonResponse({
+                        'status': 'error',
+                        'status_code': 500,
+                        'message': 'Error saving survey response.'
+                    }, status=500)
+            except Exception as e:
+                return JsonResponse({
+                    'status': 'error',
+                    'status_code': 500,
+                    'message': 'Error saving planning unit answers.'
+                }, status=500)
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'status_code': 400,
+                'message': 'There were errors in the form.',
+                'errors': form.errors
+            }, status=400)
+    else:
+        scenario_status = response.scenario_status(scenario.pk)
+
+        next_scenario = response.survey.get_next_scenario(scenario.id)
+
+        context = {
+            'response': response,
+            'survey': response.survey,
+            'scenario': scenario,
+            'scenario_status': scenario_status,
+            'questions': scenario.planning_unit_questions_scenario.all(),
+            'user': response.user,
+            'form': PlanningUnitForm(response=response, scenario=scenario)
+        }
+
+        # TODO: Get Scenario Response, answers and summary
+        rendered = render(request, template, context)
+        return JsonResponse({
+            'status': 'success',
+            'status_code': 200,
+            'message': 'Area form loaded.',
+            'html': rendered.content.decode('utf-8'),
+            'scenario_id': scenario.id,
+            'next_scenario_id': next_scenario.id if next_scenario else False
+        })
+
 
 def get_response_form(response, request, template='survey/survey_response_form.html'):
     if response is None or request is None:

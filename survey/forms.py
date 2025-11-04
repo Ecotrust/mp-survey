@@ -3,7 +3,8 @@ from django.forms import ModelForm, Form
 from .models import (
     SurveyResponse, SurveyQuestion, SurveyAnswer, SurveyQuestionOption,
     Scenario, ScenarioQuestion, PlanningUnitQuestion, ScenarioAnswer,
-    ScenarioQuestionOption, PlanningUnitAnswer, PlanningUnitQuestionOption
+    ScenarioQuestionOption, PlanningUnitAnswer, PlanningUnitQuestionOption,
+    CoinAssignment
 )
 
 def populate_question_fields(instance, question, field_name, initial_answer=None):
@@ -156,7 +157,6 @@ class SurveyResponseForm(ModelForm):
                 
         return survey_response
 
-
 class ScenarioForm(Form):
     """
     Dynamic form that generates fields based on ScenarioQuestions
@@ -164,7 +164,6 @@ class ScenarioForm(Form):
     """
     
     class Meta:
-        # model = SurveyResponse
         fields = []  # We'll add fields dynamically
     
     def __init__(self, *args, **kwargs):
@@ -186,25 +185,6 @@ class ScenarioForm(Form):
 
                 # self.fields = populate_fields(questions, answerModel=ScenarioAnswer)
 
-            if scenario.is_weighted:
-                available_coins = response.scenario_status(scenario.id)['coins_available']
-                self.fields['scenario_{}_coin_assignment'.format(scenario.id)] = forms.IntegerField(
-                    label='Assign Coins (Available: {})'.format(available_coins),
-                    min_value=0,
-                    max_value=available_coins
-                )
-
-            # pu_questions = PlanningUnitQuestion.objects.filter(scenario=scenario).order_by('order')
-            # # fields = {}
-            # for question in pu_questions:
-            #     field_name = f'scenario_{scenario.id}_pu_question_{question.id}'
-            #     answer = PlanningUnitAnswer.objects.filter(response=response, question=question).first()
-            #     initial_answer = answer.value if answer else None
-
-            #     populate_question_fields(self, question, field_name, initial_answer)
-            #     # self.fields += populate_fields(pu_questions, answerModel=PlanningUnitAnswer)
-
-
     def save_answers(self, response, scenario):
         """
         Save the form data as ScenarioAnswer objects
@@ -222,5 +202,68 @@ class ScenarioForm(Form):
                 )
 
                 save_related_answer(question, answer, answer_value, ScenarioQuestionOption)
+
+        return response
+    
+class PlanningUnitForm(Form):
+    """
+    Dynamic form that generates fields based on PlanningUnitQuestions
+    associated with a Scenario.
+    """
+    
+    class Meta:
+        fields = []  # We'll add fields dynamically
+    
+    def __init__(self, *args, **kwargs):
+        scenario = kwargs.pop('scenario', None)
+        response = kwargs.pop('response', None)
+        unit_id = kwargs.pop('unit_id', None)
+        super().__init__(*args, **kwargs)
+        
+        if scenario:
+            if scenario.is_weighted:
+                available_coins = response.scenario_status(scenario.id)['coins_available']
+                allocated_coins = None
+                if unit_id is not None:
+                    existing_assignment = CoinAssignment.objects.filter(
+                        response=response,
+                        scenario=scenario,
+                        planning_unit__pk=unit_id
+                    )
+                    if len(existing_assignment) > 0:
+                        allocated_coins = existing_assignment[0].coins_assigned
+                self.fields['scenario_{}_coin_assignment'.format(scenario.id)] = forms.IntegerField(
+                    label='Assign Coins (Available: {})'.format(available_coins),
+                    min_value=0,
+                    max_value=available_coins,
+                    initial=allocated_coins
+                )
+                
+            pu_questions = PlanningUnitQuestion.objects.filter(scenario=scenario).order_by('order')
+            for question in pu_questions:
+                field_name = f'scenario_{scenario.id}_pu_question_{question.id}'
+                if unit_id is not None:
+                    answer = PlanningUnitAnswer.objects.filter(response=response, question=question, planning_unit__pk=unit_id).first()
+                    initial_answer = answer.value if answer else None
+
+                populate_question_fields(self, question, field_name, initial_answer)
+
+    def save_answers(self, response, scenario):
+        """
+        Save the form data as PlanningUnitAnswer objects
+        """
+        # Save planning unit questions
+        pu_questions = PlanningUnitQuestion.objects.filter(scenario=scenario)
+        
+        for question in pu_questions:
+            field_name = f'scenario_{scenario.id}_pu_question_{question.id}'
+            if field_name in self.cleaned_data:
+                answer_value = self.cleaned_data[field_name]
+                answer, created = PlanningUnitAnswer.objects.get_or_create(
+                    response=response,
+                    question=question,
+                )
+
+                save_related_answer(question, answer, answer_value, PlanningUnitQuestionOption)
 
         return response
