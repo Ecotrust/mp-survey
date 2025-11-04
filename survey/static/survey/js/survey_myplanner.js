@@ -48,7 +48,9 @@ function refreshSurveyContent() {
             $('#survey-planner-content').html(data.html);
         },
         error: function(xhr, status, error) {
-            console.error('Error refreshing survey content:', error);
+            $('#survey-planner-content').html('Error refreshing survey content.<br/>' +
+                '<button class="btn btn-success btn-sm" onclick="refreshSurveyContent()">Try Again</button>'
+            );
         }
     });
 }
