@@ -245,6 +245,8 @@ class PlanningUnitForm(Form):
                 if unit_id is not None:
                     answer = PlanningUnitAnswer.objects.filter(response=response, question=question, planning_unit__pk=unit_id).first()
                     initial_answer = answer.value if answer else None
+                else:
+                    initial_answer = None
 
                 populate_question_fields(self, question, field_name, initial_answer)
 
