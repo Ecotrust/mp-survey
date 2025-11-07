@@ -210,12 +210,12 @@ app.survey.addPlanningUnitsLayer = function(geojson_object) {
       return getFeatureStyle(feature.getProperties());
     }
 
-    app.map.planningUnitLayer = new ol.layer.Vector({
+    app.survey.planningUnitLayer = new ol.layer.Vector({
         source: source,
         style: selectedPUStyleFunction,
     });
 
-    app.map.addLayer(app.map.planningUnitLayer);
+    app.map.addLayer(app.survey.planningUnitLayer);
 
 }
 
@@ -224,15 +224,28 @@ app.survey.enableExistingPUSelection = function() {};
 
 app.survey.loadPlanningUnitsLayer = function(geometries) {
     // create vector layer with geometries
-    if (app.map.planningUnitLayer !== undefined) {
-        app.map.removeLayer(app.map.planningUnitLayer);
+    if (app.survey.planningUnitLayer !== undefined) {
+        app.map.removeLayer(app.survey.planningUnitLayer);
     }
     app.survey.addPlanningUnitsLayer(geometries);
 };
 
 app.survey.selectPlanningUnitListener = function(event) {
-    if (event.hasOwnProperty('feature')){
-        window.alert('Planning Unit selected: ' + evt.feature.getId());
+    features = app.map.getFeaturesAtPixel(event.pixel);
+    selected_pu_feature = false;
+    for (let i = 0; i < features.length; i++) {
+        if (app.survey.planningUnitLayer.getSource().hasFeature(features[i])) {
+            selected_pu_feature = features[i];
+            break;
+        }
+    }
+    if (selected_pu_feature) {
+        if (selected_pu_feature.get('existing') === 'yes') {
+            console.log('This Planning Unit has already been selected.');
+            return;
+        } else{
+            app.survey.planningUnitLayer.getSource().removeFeature(selected_pu_feature);
+        }
     } else {
         if (event.pixel) {
             let coordinate = app.map.getCoordinateFromPixel(event.pixel);
@@ -263,7 +276,7 @@ app.survey.selectPlanningUnitListener = function(event) {
                                 ],
                             };
 
-                            let source = app.map.planningUnitLayer.getSource();
+                            let source = app.survey.planningUnitLayer.getSource();
                             source.addFeatures(new ol.format.GeoJSON().readFeatures(geometry_geojson));
                         }
 
