@@ -1,11 +1,16 @@
-from urllib import response
+from datetime import datetime
 from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.utils import timezone
-from .models import Survey, SurveyLayerGroup, SurveyResponse, ScenarioAnswer, PlanningUnitAnswer
-from datetime import datetime
-from django.shortcuts import render
+from urllib import response
+from urllib.parse import urlparse, parse_qs, unquote
+
 from .forms import SurveyResponseForm, ScenarioForm, PlanningUnitForm
+from .models import (
+    Survey, SurveyLayerGroup, SurveyResponse, Scenario, ScenarioAnswer, 
+    PlanningUnitAnswer
+)
 
 def get_myplanner_js(request):
     js_tag = '<script src="/static/survey/js/survey_myplanner.js"></script>'
@@ -250,25 +255,46 @@ def survey_start(request, surveypk, responsepk=None):
         'next_scenario_id': next_scenario.id if next_scenario else False
     }) 
 
-# def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_scenario_form.html'):
-# def get_survey_scenario_form(request, response_id, scenario_id, template='survey/survey_response_form.html'):
-def survey_scenario(request, response_id, scenario_id, template='survey/survey_myplanner_scenario_form.html'):
+def get_scenario_response(request, response_id, scenario_id):
+    error = None
+    status = 200
     try:
         response = SurveyResponse.objects.get(pk=response_id, user=request.user)
+        scenario = response.survey.get_scenarios().filter(id=scenario_id).first()
+        if scenario is None:
+            error = {
+                'status': 'error',
+                'status_code': 404,
+                'message': 'Scenario not found in this survey.'
+            }
+            status = 404
+            pass
     except SurveyResponse.DoesNotExist:
-        return JsonResponse({
+        response = None
+        scenario = None
+        error = {
             'status': 'error',
             'status_code': 404,
             'message': 'Survey response not found.'
-        }, status=404)
-    
-    scenario = response.survey.get_scenarios().filter(id=scenario_id).first()
-    if scenario is None:
-        return JsonResponse({
-            'status': 'error',
-            'status_code': 404,
-            'message': 'Scenario not found in this survey.'
-        }, status=404)
+        }
+        status = 404
+        pass
+
+    return {
+        'response': response,
+        'scenario': scenario,
+        'error': error,
+        'status': status
+    }
+
+def survey_scenario(request, response_id, scenario_id, template='survey/survey_myplanner_scenario_form.html'):
+    scenario_dict = get_scenario_response(request, response_id, scenario_id)
+    if scenario_dict['error'] is not None:
+        return JsonResponse(scenario_dict['error'], status=scenario_dict['status'])
+    else:
+        response = scenario_dict['response']
+        scenario = scenario_dict['scenario']
+
     if request.method == 'POST':
         
         form = ScenarioForm(request.POST, response=response, scenario=scenario)
@@ -316,10 +342,16 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
             # TODO: Load existing PU selection layer!
             planning_unit_answers = PlanningUnitAnswer.objects.filter(response=response)
 
-            if scenario.is_weighted:
-                selected_planning_units = [{'area': x.planning_unit.geometry, 'coins': x.coins} for x in planning_unit_answers]
-            else:
-                selected_planning_units = [{'area': x.planning_unit, 'coins': None} for x in planning_unit_answers]
+            selected_planning_units = []
+            for pu in planning_unit_answers:
+                if scenario.is_weighted:
+                    coins = pu.coins
+                else:
+                    coins = None
+                area = pu.planning_unit.geometry
+                # TODO: insert attribute 'existing' = True
+                # TODO: insert attribute 'coins' = coins
+                selected_planning_units.append({'area': area, 'coins': coins, 'existing': 'yes'})\
 
             if len(form.fields) == 0 and len(selected_planning_units) == 0:
                 # No planning unit selected yet, redirect to area selection
@@ -336,7 +368,6 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
             'questions': scenario.scenario_questions_scenario.all(),
             'user': response.user,
             'form': form,
-            'selected_planning_units': selected_planning_units,
         }
 
         # TODO: Get Scenario Response, answers and summary
@@ -346,27 +377,22 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
             'status_code': 200,
             'message': 'Scenario form loaded.',
             'html': rendered.content.decode('utf-8'),
+            'survey_id': response.survey.id,
+            'response_id': response.id,
             'scenario_id': scenario.id,
-            'next_scenario_id': next_scenario.id if next_scenario else False
+            'next_scenario_id': next_scenario.id if next_scenario else False,
+            'is_spatial': scenario.is_spatial,
+            'is_weighted': scenario.is_weighted,
+            'planning_units_geojson': selected_planning_units,
         })
 
 def survey_scenario_area(request, response_id, scenario_id, unit_id=None, template='survey/survey_myplanner_unit_form.html'):
-    try:
-        response = SurveyResponse.objects.get(pk=response_id, user=request.user)
-    except SurveyResponse.DoesNotExist:
-        return JsonResponse({
-            'status': 'error',
-            'status_code': 404,
-            'message': 'Survey response not found.'
-        }, status=404)
-    
-    scenario = response.survey.get_scenarios().filter(id=scenario_id).first()
-    if scenario is None:
-        return JsonResponse({
-            'status': 'error',
-            'status_code': 404,
-            'message': 'Scenario not found in this survey.'
-        }, status=404)
+    scenario_dict = get_scenario_response(request, response_id, scenario_id)
+    if scenario_dict['error'] is not None:
+        return JsonResponse(scenario_dict['error'], status=scenario_dict['status'])
+    else:
+        response = scenario_dict['response']
+        scenario = scenario_dict['scenario']
 
     if request.method == 'POST':
         form = PlanningUnitForm(request.POST, response=response, scenario=scenario)
@@ -426,9 +452,79 @@ def survey_scenario_area(request, response_id, scenario_id, unit_id=None, templa
             'message': 'Area form loaded.',
             'html': rendered.content.decode('utf-8'),
             'scenario_id': scenario.id,
-            'next_scenario_id': next_scenario.id if next_scenario else False
+            'next_scenario_id': next_scenario.id if next_scenario else False,
+            'is_spatial': scenario.is_spatial,
+            'is_weighted': scenario.is_weighted,
         })
 
+
+def get_scenario_pu_by_coordinates(request, scenario_id, x_coord=None, y_coord=None):
+    try:
+        scenario = Scenario.objects.get(id=scenario_id)
+        if scenario.is_spatial is False:
+            return JsonResponse({
+                'status': 'error',
+                'status_code': 400,
+                'message': 'Scenario is not spatial.'
+            }, status=400)
+        
+    except Scenario.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'status_code': 404,
+            'message': 'Scenario not found.'
+        }, status=404)
+    
+    querydict = parse_qs(urlparse(unquote(request.get_full_path())).query)
+
+    if x_coord is None:
+        x_coord = querydict.get('x', [None])[0]
+    if y_coord is None:
+        y_coord = querydict.get('y', [None])[0]
+
+    planning_unit = scenario.get_planning_unit_by_coordinates(x_coord, y_coord)
+    if planning_unit is None:
+        return JsonResponse({
+            'status': 'error',
+            'status_code': 404,
+            'message': 'No planning unit found at the provided coordinates.'
+        }, status=404)
+    
+    planning_unit.geometry.transform(3857)  # Transform to web mercator
+
+    return JsonResponse({
+        'status': 'success',
+        'status_code': 200,
+        'message': 'Planning unit retrieved successfully.',
+        'planning_unit_id': planning_unit.id,
+        'planning_unit_geometry': planning_unit.geometry.geojson
+    })
+    
+# def get_scenario_areas(request, response_id, scenario_id):
+#     scenario_dict = get_scenario_response(request, response_id, scenario_id)
+#     if scenario_dict['error'] is not None:
+#         return JsonResponse(scenario_dict['error'], status=scenario_dict['status'])
+#     else:
+#         response = scenario_dict['response']
+#         scenario = scenario_dict['scenario']
+
+#     planning_unit_answers = PlanningUnitAnswer.objects.filter(response=response)
+
+#     selected_planning_units = []
+#     for pu in planning_unit_answers:
+#         if scenario.is_weighted:
+#             coins = pu.coins
+#         else:
+#             coins = None
+#         area = pu.planning_unit.geometry
+#         selected_planning_units.append({'area': area, 'coins': coins})
+
+#     return JsonResponse({
+#         'status': 'success',
+#         'status_code': 200,
+#         'message': 'Planning units retrieved successfully.',
+#         'selected_planning_units': selected_planning_units
+#     })
 
 def get_response_form(response, request, template='survey/survey_response_form.html'):
     if response is None or request is None:

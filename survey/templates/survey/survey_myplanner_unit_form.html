@@ -7,7 +7,7 @@
     <form method="post">
         {% csrf_token %}
         {% block myplanner_survey_form_inner %}
-            <button type="button" class="btn btn-secondary" onclick="app.survey.startScenarioSelection()">Select Areas</button>
+            <button type="button" class="btn btn-secondary" onclick="app.survey.startPlanningUnitSelection({{selected_planning_units}})">Select Areas</button>
             <button type="button" class="btn">Clear Selection</button>
             <table>
                 <tr>

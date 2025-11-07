@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.gis.db.models import MultiPolygonField
+from django.contrib.gis.geos import GEOSGeometry
 from django.conf import settings
 
 class QuestionOption(models.Model):
@@ -174,6 +175,7 @@ class PlanningUnit(models.Model):
         null=True,
         help_text="Geometry of the planning unit."
     )
+    # TODO: Make this a FK, with on_delete=models.CASCADE,
     family = models.ManyToManyField(
         PlanningUnitFamily,
         related_name='planning_units_family',
@@ -353,6 +355,13 @@ class Scenario(models.Model):
     #     help_text="Select planning unit questions to include in this scenario."
     # )
 
+    def get_planning_unit_by_coordinates(self, x_coord, y_coord):
+        point_wkt = f'POINT({x_coord} {y_coord})'
+        point = GEOSGeometry(point_wkt, srid=3857)
+
+        pus = PlanningUnit.objects.filter(family=self.pu_family, geometry__contains=point)
+        return pus.first() if pus.exists() else None
+
     def __str__(self):
         return self.name
 
@@ -419,7 +428,12 @@ class SurveyResponse(models.Model):
             scenario_status['questions_completed'] = True
         if scenario.is_spatial:
             required_pu_questions = scenario.planning_unit_questions_scenario.filter(is_required=True)
-            for pu in PlanningUnit.objects.filter(family=scenario.pu_family):
+            selected_pu_ids = []
+            for pua in self.planningunitanswer_response.all():
+                if pua.planning_unit.id not in selected_pu_ids:
+                    selected_pu_ids.append(pua.planning_unit.id)
+            for pu_id in selected_pu_ids:
+                pu = PlanningUnit.objects.get(id=pu_id)
                 for question in required_pu_questions:
                     if not self.planningunitanswer_response.filter(question=question, planning_unit=pu).exists():
                         scenario_status['planning_unit_questions_completed'] = False

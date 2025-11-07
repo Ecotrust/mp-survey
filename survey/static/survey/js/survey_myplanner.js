@@ -15,7 +15,8 @@ function showSurveyForm() {
 }
 
 function hideSurveyForm() {
-    refreshSurveyContent()
+    refreshSurveyContent();
+    app.map.on('singleclick', app.wrapper.listeners['singleclick']);
     app.viewModel.scenarios.externalForm(false);
     $("#myplanner-survey-dialog").hide();
 }
@@ -71,6 +72,9 @@ function takeSurvey(surveyId, responseId){
         url: url,
         type: 'GET',
         success: function(data) {
+            app.survey.survey_id = data.survey_id;
+            app.survey.response_id = data.response_id;
+            app.survey.scenario_id = null;
             $('#myplanner-survey-dialog-body').html(data.html);
             if (data.next_scenario_id) {
                 $('#myplanner-survey-dialog-next').off('click');
@@ -165,6 +169,139 @@ app.survey.toggleSurveyLayer = function(event, layer_id) {
     }
 }
 
+app.survey.addPlanningUnitsLayer = function(geojson_object) {
+    // Written assuming OpenLayers 8
+    let source = new ol.source.Vector({wrapX: false});
+
+    source.clear();
+    if (geojson_object !== null && geojson_object !== undefined) {
+        let json_features = new ol.format.GeoJSON({featureProjection: app.map.getView().getProjection()}).readFeatures(geojson_object);
+        source.addFeatures(json_features);
+    }
+
+    // Thanks to TomazicM at https://gis.stackexchange.com/a/425178 for help getting styles to work
+    let featureStyleCache = {};
+
+    function getFeatureColor(properties) {
+        if (properties.existing == 'yes') {
+            return [216, 125, 27];
+        } else {
+            return [134, 216, 27];
+        }
+    }
+
+    function getFeatureStyle(properties) {
+      if (!featureStyleCache[properties.existing]) {
+        const color = getFeatureColor(properties);
+        featureStyleCache[properties.existing] = new ol.style.Style({
+            fill: new ol.style.Fill({
+                color: `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.4)`,
+            }),
+            stroke: new ol.style.Stroke({
+                color: `rgba(${color[0]}, ${color[1]}, ${color[2]}, 1)`,
+                width: 2,
+            }),
+        });
+      }
+      return featureStyleCache[properties.existing];
+    }
+
+    function selectedPUStyleFunction(feature, resolution) {
+      return getFeatureStyle(feature.getProperties());
+    }
+
+    app.map.planningUnitLayer = new ol.layer.Vector({
+        source: source,
+        style: selectedPUStyleFunction,
+    });
+
+    app.map.addLayer(app.map.planningUnitLayer);
+
+}
+
+app.survey.enableExistingPUSelection = function() {};
+
+
+app.survey.loadPlanningUnitsLayer = function(geometries) {
+    // create vector layer with geometries
+    if (app.map.planningUnitLayer !== undefined) {
+        app.map.removeLayer(app.map.planningUnitLayer);
+    }
+    app.survey.addPlanningUnitsLayer(geometries);
+};
+
+app.survey.selectPlanningUnitListener = function(event) {
+    if (event.hasOwnProperty('feature')){
+        window.alert('Planning Unit selected: ' + evt.feature.getId());
+    } else {
+        if (event.pixel) {
+            let coordinate = app.map.getCoordinateFromPixel(event.pixel);
+            url = '/survey/scenario/' + app.survey.scenario_id + '/get_area_by_point?x=' + coordinate[0] + '&y=' + coordinate[1];
+            $.ajax({
+                url: url,
+                type: 'GET',
+                success: function(data) {
+                    if (data.status === 'success') {
+                        if (data.planning_unit_geometry !== null && data.planning_unit_geometry !== undefined) {
+                            geometry_geojson = {
+                                'type': 'FeatureCollection',
+                                'crs': {
+                                    'type': 'name',
+                                    'properties': {
+                                    'name': 'EPSG:3857',
+                                    },
+                                },
+                                'features': [
+                                    {
+                                        'type': 'Feature',
+                                        'geometry': JSON.parse(data.planning_unit_geometry),
+                                        'properties': {
+                                            'planning_unit_id': data.planning_unit_id,
+                                            'existing': 'no',
+                                        },
+                                    },
+                                ],
+                            };
+
+                            let source = app.map.planningUnitLayer.getSource();
+                            source.addFeatures(new ol.format.GeoJSON().readFeatures(geometry_geojson));
+                        }
+
+                    } else {
+                        window.alert('No planning unit found at the selected location.');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    window.alert('Error retrieving planning unit. Please try again.');
+                }
+            });
+                    
+        } else {
+            window.alert('No feature or coordinate found in event.');
+        }
+    }
+}
+
+app.survey.startPlanningUnitSelection = function(event) {
+    app.map.un('singleclick', app.wrapper.listeners['singleclick']);
+    app.map.on('singleclick', app.survey.selectPlanningUnitListener);
+    // disable form (not coins?)
+    // show instructions?
+    // handle drawing vs. selection?
+    // enable controls (app.wrapper.controls.startSketch, sketchMode('point'))
+    //      ol8 specific wrapper?
+    // show cancel button
+
+}
+
+app.survey.stopPlanningUnitSelection = function(event) {
+    app.map.on('singleclick', app.wrapper.listeners['singleclick']);
+    app.map.on('singleclick', app.survey.selectPlanningUnitListener);
+    // enable form
+    // hide instructions?
+    // hide cancel button
+}
+
 function loadNextSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId) {
     // TODO: Ajax call to load next scenario
     // window.alert('Loading next scenario. Id: ' + nextScenarioId);
@@ -172,6 +309,9 @@ function loadNextSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId
         url: '/survey/scenario/'+responseId+'/'+nextScenarioId+'/',
         type: 'GET',
         success: function(data) {
+            app.survey.survey_id = data.survey_id;
+            app.survey.response_id = data.response_id;
+            app.survey.scenario_id = data.scenario_id;
             $('#myplanner-survey-dialog-body').html(data.html);
             if (data.next_scenario_id) {
                 $('#myplanner-survey-dialog-next').off('click');
@@ -197,6 +337,9 @@ function loadNextSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId
                     e.preventDefault();
                 });
                 showSaveButton();
+            }
+            if (data.is_spatial) {
+                app.survey.loadPlanningUnitsLayer(data.planning_units_geojson);
             }
         },
         error: function(xhr, status, error) {
