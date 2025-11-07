@@ -296,20 +296,24 @@ app.survey.selectPlanningUnitListener = function(event) {
 }
 
 app.survey.startPlanningUnitSelection = function(event) {
+    // hide form
+    $('#survey-scenario-pu-form').hide();
+    $('#survey-scenario-pu-select-areas-button').prop('disabled', true);
+    // show instructions
+    // show cancel button
+    $('#survey-scenario-pu-selection-block').show();
+    // handle drawing vs. selection?
     app.map.un('singleclick', app.wrapper.listeners['singleclick']);
     app.map.on('singleclick', app.survey.selectPlanningUnitListener);
-    // disable form (not coins?)
-    // show instructions?
-    // handle drawing vs. selection?
-    // enable controls (app.wrapper.controls.startSketch, sketchMode('point'))
-    //      ol8 specific wrapper?
-    // show cancel button
 
 }
 
 app.survey.stopPlanningUnitSelection = function(event) {
+    $('#survey-scenario-pu-selection-block').hide();
+    $('#survey-scenario-pu-select-areas-button').prop('disabled', false);
+    $('#survey-scenario-pu-form').show();
+    app.map.un('singleclick', app.survey.selectPlanningUnitListener);
     app.map.on('singleclick', app.wrapper.listeners['singleclick']);
-    app.map.on('singleclick', app.survey.selectPlanningUnitListener);
     // enable form
     // hide instructions?
     // hide cancel button
