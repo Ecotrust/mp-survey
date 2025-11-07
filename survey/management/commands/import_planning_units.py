@@ -1,10 +1,12 @@
-import os
-import zipfile
-import tempfile
-import shutil
+from django.conf import settings
+from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
-from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
+import os
+import shutil
+import tempfile
+import zipfile
+
 from survey.models import PlanningUnitFamily, PlanningUnit
 
 try:
@@ -130,6 +132,11 @@ class Command(BaseCommand):
             raise CommandError("Could not get layer from data source")
 
         features = []
+        inSpatialRef = ogr.osr.SpatialReference()
+        inSpatialRef.ImportFromWkt(layer.GetSpatialRef().ExportToWkt())
+        outSpatialRef = ogr.osr.SpatialReference()
+        outSpatialRef.ImportFromEPSG(settings.GEOMETRY_DB_SRID)
+        coordTrans = ogr.osr.CoordinateTransformation(inSpatialRef, outSpatialRef)
         for i in range(layer.GetFeatureCount()):
             feature = layer.GetFeature(i)
             if feature is None:
@@ -144,8 +151,9 @@ class Command(BaseCommand):
                 continue
 
             try:
+                geometry_ref.Transform(coordTrans)
                 wkt_geometry = geometry_ref.ExportToWkt()
-                geos_geometry = GEOSGeometry(wkt_geometry)
+                geos_geometry = GEOSGeometry(wkt_geometry, srid=settings.GEOMETRY_DB_SRID)
 
                 # Process both Polygon and MultiPolygon geometries
                 if geos_geometry.geom_type not in ["Polygon", "MultiPolygon"]:
