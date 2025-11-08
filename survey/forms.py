@@ -238,6 +238,8 @@ class PlanningUnitForm(Form):
                     max_value=available_coins,
                     initial=allocated_coins
                 )
+
+            self.fields['scenario_{}_planning_unit_ids'.format(scenario.id)] = forms.CharField()
                 
             pu_questions = PlanningUnitQuestion.objects.filter(scenario=scenario).order_by('order')
             for question in pu_questions:

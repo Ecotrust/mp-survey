@@ -74,7 +74,8 @@ function takeSurvey(surveyId, responseId){
         success: function(data) {
             app.survey.survey_id = data.survey_id;
             app.survey.response_id = data.response_id;
-            app.survey.scenario_id = null;
+            app.survey.scenario = {};
+            app.survey.scenario.id = null;
             $('#myplanner-survey-dialog-body').html(data.html);
             if (data.next_scenario_id) {
                 $('#myplanner-survey-dialog-next').off('click');
@@ -249,7 +250,7 @@ app.survey.selectPlanningUnitListener = function(event) {
     } else {
         if (event.pixel) {
             let coordinate = app.map.getCoordinateFromPixel(event.pixel);
-            url = '/survey/scenario/' + app.survey.scenario_id + '/get_area_by_point?x=' + coordinate[0] + '&y=' + coordinate[1];
+            url = '/survey/scenario/' + app.survey.scenario.id + '/get_area_by_point?x=' + coordinate[0] + '&y=' + coordinate[1];
             $.ajax({
                 url: url,
                 type: 'GET',
@@ -308,8 +309,59 @@ app.survey.startPlanningUnitSelection = function(event) {
 
 }
 
+app.survey.getCoinsAssigned = function() {
+    let total_coins = 0;
+    let features = app.survey.getAllScenarioAreas();
+    let new_coins_per_unit = parseInt($('#id_scenario_'+app.survey.scenario.id+'_coin_assignment').val());
+    if (isNaN(new_coins_per_unit)) {
+        new_coins_per_unit = 0;
+    }
+    for (let i = 0; i < features.length; i++) {
+        let feature = features[i];
+        if (feature.get('existing') == 'yes') {
+            total_coins += feature.get('coins');
+        } else {
+            total_coins += new_coins_per_unit;
+        }
+    }
+    return total_coins;  
+}
+
+app.survey.setCoinsAssigned = function(event) {
+    let total_coins = app.survey.getCoinsAssigned();
+
+    if (app.survey.scenario.total_coins < total_coins) {
+        $('#scenario-coins-assigned').html('<span style="color: red;">' + total_coins + '</span>');
+    } else {
+        if (app.survey.scenario.require_all_coins_used && total_coins < app.survey.scenario.total_coins) {
+            $('#scenario-coins-assigned').html('<span style="color: orange;">' + total_coins + '</span>');
+        } else {
+            $('#scenario-coins-assigned').html(total_coins);
+        }
+    }
+}
+
+app.survey.getAllScenarioAreas = function() {
+    return app.survey.planningUnitLayer.getSource().getFeatures();
+}
+
+app.survey.getNewSelectedAreaIDs = function() {
+    let features = app.survey.planningUnitLayer.getSource().getFeatures();
+    let new_selected_areas = [];
+    for (let i = 0; i < features.length; i++) {
+        let feature = features[i];
+        if (feature.get('existing') == 'no') {
+            new_selected_areas.push(feature.get('planning_unit_id'));
+        }
+    }
+    return new_selected_areas.toString();
+}
+
 app.survey.stopPlanningUnitSelection = function(event) {
     $('#survey-scenario-pu-selection-block').hide();
+    app.survey.setCoinsAssigned();
+    $('#scenario-areas-selected').text(app.survey.getAllScenarioAreas().length );
+    $('#id_scenario_'+app.survey.scenario.id+'_planning_unit_ids').val(app.survey.getNewSelectedAreaIDs());
     $('#survey-scenario-pu-select-areas-button').prop('disabled', false);
     $('#survey-scenario-pu-form').show();
     app.map.un('singleclick', app.survey.selectPlanningUnitListener);
@@ -328,7 +380,15 @@ function loadNextSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId
         success: function(data) {
             app.survey.survey_id = data.survey_id;
             app.survey.response_id = data.response_id;
-            app.survey.scenario_id = data.scenario_id;
+            app.survey.scenario = {};
+            app.survey.scenario.id = data.scenario_id;
+            app.survey.scenario.is_spatial = data.is_spatial;
+            app.survey.scenario.is_weighted = data.is_weighted;
+            app.survey.scenario.min_coins_per_pu = data.minimum_coins;
+            app.survey.scenario.max_coins_per_pu = data.maximum_coins;
+            app.survey.scenario.total_coins = data.total_coins;
+            app.survey.scenario.require_all_coins_used = data.require_all_coins;
+            
             $('#myplanner-survey-dialog-body').html(data.html);
             if (data.next_scenario_id) {
                 $('#myplanner-survey-dialog-next').off('click');
@@ -357,6 +417,9 @@ function loadNextSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId
             }
             if (data.is_spatial) {
                 app.survey.loadPlanningUnitsLayer(data.planning_units_geojson);
+                if (data.is_weighted) {
+                    $('#id_scenario_'+app.survey.scenario.id+'_coin_assignment').on('change', app.survey.setCoinsAssigned);
+                }
             }
         },
         error: function(xhr, status, error) {

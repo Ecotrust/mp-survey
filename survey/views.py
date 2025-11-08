@@ -384,6 +384,10 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
             'is_spatial': scenario.is_spatial,
             'is_weighted': scenario.is_weighted,
             'planning_units_geojson': selected_planning_units,
+            'minimum_coins': scenario.min_coins_per_pu,
+            'maximum_coins': scenario.max_coins_per_pu,
+            'total_coins': scenario.total_coins,
+            'require_all_coins': scenario.require_all_coins_used,
         })
 
 def survey_scenario_area(request, response_id, scenario_id, unit_id=None, template='survey/survey_myplanner_unit_form.html'):
@@ -455,6 +459,10 @@ def survey_scenario_area(request, response_id, scenario_id, unit_id=None, templa
             'next_scenario_id': next_scenario.id if next_scenario else False,
             'is_spatial': scenario.is_spatial,
             'is_weighted': scenario.is_weighted,
+            'minimum_coins': scenario.min_coins_per_pu,
+            'maximum_coins': scenario.max_coins_per_pu,
+            'total_coins': scenario.total_coins,
+            'require_all_coins': scenario.require_all_coins_used,
         })
 
 
