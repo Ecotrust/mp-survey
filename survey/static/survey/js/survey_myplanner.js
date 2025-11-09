@@ -1,3 +1,9 @@
+app.survey = {};
+
+////////////////////////////////////////////////
+// Survey Panel Manipulation Functions
+////////////////////////////////////////////////
+
 $( "#group-surveys-header" ).on( "click", function() {
     $( "#survey-planner-content" ).slideToggle( "fast", function() {
       // Animation complete.
@@ -16,6 +22,15 @@ function showSurveyForm() {
 
 function hideSurveyForm() {
     refreshSurveyContent();
+
+    if (app.survey) {
+        if (app.survey.planningUnitLayer) {
+            app.map.removeLayer(app.survey.planningUnitLayer);
+        }
+        if (app.survey.selectPlanningUnitListener) {
+            app.map.un('singleclick', app.survey.selectPlanningUnitListener);
+        }
+    }
     app.map.on('singleclick', app.wrapper.listeners['singleclick']);
     app.viewModel.scenarios.externalForm(false);
     $("#myplanner-survey-dialog").hide();
@@ -56,6 +71,26 @@ function refreshSurveyContent() {
     });
 }
 
+////////////////////////////////////////////////
+// Survey Form Functions
+////////////////////////////////////////////////
+
+function submitSurveyForm(url, successCallback) {
+    let csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // AJAX call to save form data
+    $.ajax({
+        type: 'POST',
+        url: url,
+        headers: { 'X-CSRFToken': csrftoken },
+        data: $('#myplanner-survey-dialog-body form').serialize(),
+        success: successCallback,
+        error: function() {
+            window.alert('Error saving survey responses. Please try again.');
+        }
+    });
+}
+
 function takeSurvey(surveyId, responseId){
     // Populate form field with loader
     hideNavButtons();
@@ -78,6 +113,7 @@ function takeSurvey(surveyId, responseId){
             app.survey.scenario.id = null;
             $('#myplanner-survey-dialog-body').html(data.html);
             if (data.next_scenario_id) {
+                app.survey.next_scenario_id = data.next_scenario_id;
                 $('#myplanner-survey-dialog-next').off('click');
                 $('#myplanner-survey-dialog-next').on('click', function(e) {
                     submitSurveyForm(
@@ -87,7 +123,7 @@ function takeSurvey(surveyId, responseId){
                                 // window.alert('Survey responses saved. Thank you!');
                                 // refreshSurveyContent();
                                 // hideSurveyForm();
-                                loadNextSurveyScenario(surveyId, data.response_id, data.scenario_id, data.next_scenario_id);
+                                loadSurveyScenario(surveyId, data.response_id, data.scenario_id, data.next_scenario_id);
                             } else {
                                 window.alert('Error saving survey responses. Please try again.');
                             }
@@ -132,50 +168,92 @@ function takeSurvey(surveyId, responseId){
     });
 }
 
-function enableSurveyLayerControls(layerGroups) {
-    // Enable layer controls based on the provided layer groups
-    // ensure layer objects exist in app.viewModel
-    for (let group_idx in layerGroups) {
-        let group = layerGroups[group_idx];
-        for (let i = 0; i < group.layers.length; i++) {
-            let layer = group.layers[i];
-            app.viewModel.getOrCreateLayer(
-                {
-                    id: layer.id,
-                    name: layer.name,
-                    slug_name: layer.slug_name,
-                }, //layer_obj
-                null, //parent
-                "return", //action
-                null //event
-            );
-            if (layer.auto_show) {
-                app.viewModel.getLayerById(layer.id).activateLayer();
+////////////////////////////////////////////////
+// Scenario Form Functions
+////////////////////////////////////////////////
+
+function loadSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId) {
+    // TODO: Ajax call to load next scenario
+    // window.alert('Loading next scenario. Id: ' + nextScenarioId);
+    $.ajax({
+        url: '/survey/scenario/'+responseId+'/'+nextScenarioId+'/',
+        type: 'GET',
+        success: function(data) {
+            app.survey.survey_id = data.survey_id;
+            app.survey.response_id = data.response_id;
+            app.survey.scenario = {};
+            app.survey.scenario.id = data.scenario_id;
+            app.survey.scenario.is_spatial = data.is_spatial;
+            app.survey.scenario.is_weighted = data.is_weighted;
+            app.survey.scenario.min_coins_per_pu = data.minimum_coins;
+            app.survey.scenario.max_coins_per_pu = data.maximum_coins;
+            app.survey.scenario.total_coins = data.total_coins;
+            app.survey.scenario.require_all_coins_used = data.require_all_coins;
+            app.survey.scenario.planning_units_geojson = data.planning_units_geojson;
+
+            $('#myplanner-survey-dialog-body').html(data.html);
+            if (data.is_spatial) {
+                app.survey.loadPlanningUnitsLayer(data.planning_units_geojson);
+                if (data.is_weighted) {
+                    $('#id_scenario_'+app.survey.scenario.id+'_coin_assignment').on('change', app.survey.setCoinsAssigned);
+                }
+                if (data.jump_to_area_selection) {
+                    if (data.planning_units_geojson.length === 0) {
+                        loadSurveyScenarioSpatialSelectionForm(data.response_id, data.scenario_id);
+                    } else {
+                        loadSurveyScenarioSpatialStatus(data.response_id, data.scenario_id);
+                    }
+                }
+            } 
+            if (!data.jump_to_area_selection) {
+                if (data.next_scenario_id) {
+                    app.survey.next_scenario_id = data.next_scenario_id;
+                    $('#myplanner-survey-dialog-next').off('click');
+                    $('#myplanner-survey-dialog-next').on('click', function() {
+                        loadSurveyScenario(surveyId, responseId, data.scenario_id, data.next_scenario_id);
+                    });
+                    showNextButton();
+                } else {
+                    $('#myplanner-survey-dialog-save').off('click');
+                    $('#myplanner-survey-dialog-save').on('click', function(e) {
+                        submitSurveyForm(
+                            '/survey/scenario/'+responseId+'/'+data.scenario_id+'/',
+                            function(saveData) {
+                                if (saveData.status === 'success') {
+                                    window.alert('Scenario responses saved. Thank you!');
+                                    refreshSurveyContent();
+                                    hideSurveyForm();
+                                } else {
+                                    window.alert('Error saving survey responses. Please try again.');
+                                }
+                            }
+                        );
+                        e.preventDefault();
+                    });
+                    showSaveButton();
+                }
             }
+        },
+        error: function(xhr, status, error) {
+            $('#myplanner-survey-dialog-body').html(
+                '<h3>Error loading survey scenario. Please try again later.</h3>'
+            );
+            hideNavButtons();
         }
-    }
-
+    });
 }
 
-app.survey = {}
+/////////////////////////////////////////////
+// Spatial Scenario (PU) Functions
+/////////////////////////////////////////////
 
-app.survey.toggleSurveyLayer = function(event, layer_id) {
-    let layer = app.viewModel.getLayerById(layer_id);
-    if (layer) {
-        if (layer.active() && event.target.checked === false){
-            layer.deactivateLayer();
-        } else if (!layer.active() && event.target.checked === true){
-            layer.activateLayer();
-        }
-    }
-}
 
 app.survey.addPlanningUnitsLayer = function(geojson_object) {
     // Written assuming OpenLayers 8
     let source = new ol.source.Vector({wrapX: false});
 
     source.clear();
-    if (geojson_object !== null && geojson_object !== undefined) {
+    if (geojson_object !== null && geojson_object !== undefined && geojson_object.length != 0) {
         let json_features = new ol.format.GeoJSON({featureProjection: app.map.getView().getProjection()}).readFeatures(geojson_object);
         source.addFeatures(json_features);
     }
@@ -219,9 +297,6 @@ app.survey.addPlanningUnitsLayer = function(geojson_object) {
     app.map.addLayer(app.survey.planningUnitLayer);
 
 }
-
-app.survey.enableExistingPUSelection = function() {};
-
 
 app.survey.loadPlanningUnitsLayer = function(geometries) {
     // create vector layer with geometries
@@ -371,81 +446,114 @@ app.survey.stopPlanningUnitSelection = function(event) {
     // hide cancel button
 }
 
-function loadNextSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId) {
-    // TODO: Ajax call to load next scenario
-    // window.alert('Loading next scenario. Id: ' + nextScenarioId);
+app.survey.pu_assign_next_clicked = function() {
+    // Logic for 'next' button click
+    // console.log('PU Assign Next Clicked');
+    // is scenario valid?
+    if (app.survey.scenario.is_weighted) {
+        if (app.survey.getCoinsAssigned() > app.survey.scenario.total_coins) {
+            window.alert('You have assigned more coins than allowed. Please adjust your assignment.');
+            return;
+        }
+        let pu_coins = parseInt($('#id_scenario_'+app.survey.scenario.id+'_coin_assignment').val());
+        if (isNaN(pu_coins) || pu_coins < 1) {
+            window.alert('Please assign at least 1 coin to each area.');
+            return;
+        }
+        if (pu_coins > app.survey.scenario.max_coins_per_pu) {
+            window.alert('You have assigned more coins than allowed per area. Please adjust your assignment.');
+            return;
+        }
+        if (pu_coins < app.survey.scenario.min_coins_per_pu) {
+            window.alert('You have assigned fewer coins than allowed per area. Please adjust your assignment.');
+            return;
+        }
+        if (!app.survey.scenario.pu) {
+            let selected_planning_units = app.survey.getAllScenarioAreas();
+            if (selected_planning_units.length == 0) {
+                window.alert('Please select at least one area.');
+                return;
+            }
+        }
+    }
+    let url = '/survey/area/'+app.survey.response_id+'/'+app.survey.scenario.id+'/';
+    if (app.survey.scenario.pu) {
+        url += app.survey.scenario.pu + '/';
+    }
+
+    submitSurveyForm(
+        url,
+        function(saveData) {
+            if (saveData.status === 'success') {
+                loadSurveyScenario(app.survey.survey_id, app.survey.response_id, app.survey.scenario.id, app.survey.next_scenario_id);
+            } else {
+                window.alert('Error saving selected areas. Please try again.');
+            }
+        }
+    );
+
+
+    // app.survey.scenario.savePlanningUnitSelection();
+}
+
+// function loadSurveyScenarioSpatialStatus(responseId, scenarioId) {
+//     $.ajax({
+//         url: '/survey/scenario/'+responseId+'/'+scenarioId+'/',
+//         type: 'GET',
+//         success: function(data) {
+//             // Handle the success response
+//         },
+//         error: function(xhr, status, error) {
+//             // Handle the error response
+//         }
+//     });
+// }
+
+function loadSurveyScenarioSpatialSelectionForm(responseId, scenarioId, unitId) {
+    if (unitId) {
+        url = '/survey/area/'+responseId+'/'+scenarioId+'/'+unitId+'/';
+    } else {
+        url = '/survey/area/'+responseId+'/'+scenarioId+'/';
+    }
     $.ajax({
-        url: '/survey/scenario/'+responseId+'/'+nextScenarioId+'/',
+        url: url,
         type: 'GET',
         success: function(data) {
             app.survey.survey_id = data.survey_id;
             app.survey.response_id = data.response_id;
             app.survey.scenario = {};
             app.survey.scenario.id = data.scenario_id;
+            app.survey.scenario.pu = data.pu_id || false;
             app.survey.scenario.is_spatial = data.is_spatial;
             app.survey.scenario.is_weighted = data.is_weighted;
             app.survey.scenario.min_coins_per_pu = data.minimum_coins;
             app.survey.scenario.max_coins_per_pu = data.maximum_coins;
             app.survey.scenario.total_coins = data.total_coins;
             app.survey.scenario.require_all_coins_used = data.require_all_coins;
-            
+
             $('#myplanner-survey-dialog-body').html(data.html);
-            if (data.next_scenario_id) {
-                $('#myplanner-survey-dialog-next').off('click');
-                $('#myplanner-survey-dialog-next').on('click', function() {
-                    loadNextSurveyScenario(surveyId, responseId, data.scenario_id, data.next_scenario_id);
-                });
-                showNextButton();
-            } else {
-                $('#myplanner-survey-dialog-save').off('click');
-                $('#myplanner-survey-dialog-save').on('click', function(e) {
-                    submitSurveyForm(
-                        '/survey/scenario/'+responseId+'/'+data.scenario_id+'/',
-                        function(saveData) {
-                            if (saveData.status === 'success') {
-                                window.alert('Scenario responses saved. Thank you!');
-                                refreshSurveyContent();
-                                hideSurveyForm();
-                            } else {
-                                window.alert('Error saving survey responses. Please try again.');
-                            }
-                        }
-                    );
-                    e.preventDefault();
-                });
-                showSaveButton();
-            }
-            if (data.is_spatial) {
-                app.survey.loadPlanningUnitsLayer(data.planning_units_geojson);
-                if (data.is_weighted) {
-                    $('#id_scenario_'+app.survey.scenario.id+'_coin_assignment').on('change', app.survey.setCoinsAssigned);
-                }
+            $('#myplanner-survey-dialog-next').off('click');
+            $('#myplanner-survey-dialog-next').on('click', app.survey.pu_assign_next_clicked);
+            // Set logic for 'next' button
+            app.survey.loadPlanningUnitsLayer(data.planning_units_geojson);
+            if (data.is_weighted) {
+                $('#id_scenario_'+app.survey.scenario.id+'_coin_assignment').on('change', app.survey.setCoinsAssigned);
             }
         },
         error: function(xhr, status, error) {
             $('#myplanner-survey-dialog-body').html(
-                '<h3>Error loading survey scenario. Please try again later.</h3>'
+                '<h3>Error loading survey scenario area selection form. Please try again later.</h3>'
             );
-            hideNavButtons();
+            // hideNavButtons();
         }
     });
 }
 
-function submitSurveyForm(url, successCallback) {
-    let csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+/////////////////////////////////////////////
+// Layer Overlay Selection Panel Functions
+/////////////////////////////////////////////
 
-    // AJAX call to save form data
-    $.ajax({
-        type: 'POST',
-        url: url,
-        headers: { 'X-CSRFToken': csrftoken },
-        data: $('#myplanner-survey-dialog-body form').serialize(),
-        success: successCallback,
-        error: function() {
-            window.alert('Error saving survey responses. Please try again.');
-        }
-    });
-}
+
 
 function showLayersPanel() {
     $('#myplanner-survey-layer-button-before i').removeClass('fa-chevron-up');
@@ -496,3 +604,41 @@ function toggleLayersGroup(group_id) {
         showLayersGroup(group_id);
     }
 }
+
+// is this used?
+app.survey.toggleSurveyLayer = function(event, layer_id) {
+    let layer = app.viewModel.getLayerById(layer_id);
+    if (layer) {
+        if (layer.active() && event.target.checked === false){
+            layer.deactivateLayer();
+        } else if (!layer.active() && event.target.checked === true){
+            layer.activateLayer();
+        }
+    }
+}
+
+function enableSurveyLayerControls(layerGroups) {
+    // Enable layer controls based on the provided layer groups
+    // ensure layer objects exist in app.viewModel
+    for (let group_idx in layerGroups) {
+        let group = layerGroups[group_idx];
+        for (let i = 0; i < group.layers.length; i++) {
+            let layer = group.layers[i];
+            app.viewModel.getOrCreateLayer(
+                {
+                    id: layer.id,
+                    name: layer.name,
+                    slug_name: layer.slug_name,
+                }, //layer_obj
+                null, //parent
+                "return", //action
+                null //event
+            );
+            if (layer.auto_show) {
+                app.viewModel.getLayerById(layer.id).activateLayer();
+            }
+        }
+    }
+
+}
+

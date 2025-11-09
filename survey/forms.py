@@ -4,7 +4,7 @@ from .models import (
     SurveyResponse, SurveyQuestion, SurveyAnswer, SurveyQuestionOption,
     Scenario, ScenarioQuestion, PlanningUnitQuestion, ScenarioAnswer,
     ScenarioQuestionOption, PlanningUnitAnswer, PlanningUnitQuestionOption,
-    CoinAssignment
+    CoinAssignment, PlanningUnit
 )
 
 def populate_question_fields(instance, question, field_name, initial_answer=None):
@@ -258,16 +258,22 @@ class PlanningUnitForm(Form):
         """
         # Save planning unit questions
         pu_questions = PlanningUnitQuestion.objects.filter(scenario=scenario)
+
+        pu_field_name = f'scenario_{scenario.id}_planning_unit_ids'
+        selected_planning_units = [PlanningUnit.objects.get(pk=x) for x in self.cleaned_data[pu_field_name].split(',')]
         
         for question in pu_questions:
             field_name = f'scenario_{scenario.id}_pu_question_{question.id}'
             if field_name in self.cleaned_data:
                 answer_value = self.cleaned_data[field_name]
-                answer, created = PlanningUnitAnswer.objects.get_or_create(
-                    response=response,
-                    question=question,
-                )
 
-                save_related_answer(question, answer, answer_value, PlanningUnitQuestionOption)
+                for pu in selected_planning_units:
+                    answer, created = PlanningUnitAnswer.objects.get_or_create(
+                        response=response,
+                        question=question,
+                        planning_unit__pk=pu_id
+                    )
+
+                    save_related_answer(question, answer, answer_value, PlanningUnitQuestionOption)
 
         return response

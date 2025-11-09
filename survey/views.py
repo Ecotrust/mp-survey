@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
@@ -8,7 +9,7 @@ from urllib.parse import urlparse, parse_qs, unquote
 
 from .forms import SurveyResponseForm, ScenarioForm, PlanningUnitForm
 from .models import (
-    Survey, SurveyLayerGroup, SurveyResponse, Scenario, ScenarioAnswer, 
+    CoinAssignment, Survey, SurveyLayerGroup, SurveyResponse, Scenario, ScenarioAnswer, 
     PlanningUnitAnswer
 )
 
@@ -338,27 +339,50 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
 
         form = ScenarioForm(response=response, scenario=scenario)
 
+        jump_to_area_selection = False
+
+        feature_collection = {
+            "type": "FeatureCollection",
+            "features": []
+        }
+
         if scenario.is_spatial:
-            # TODO: Load existing PU selection layer!
             planning_unit_answers = PlanningUnitAnswer.objects.filter(response=response)
 
-            selected_planning_units = []
-            for pu in planning_unit_answers:
+            selected_planning_units = {}
+            for pua in planning_unit_answers:
+                pu_id = pua.planning_unit.id
+                if pu_id not in selected_planning_units.keys():
+                    selected_planning_units[pu_id] = {}
+                    selected_planning_units[pu_id]['geometry'] = json.loads(pua.planning_unit.geometry.geojson)
+                    selected_planning_units[pu_id]['properties'] = {
+                        'id': pua.planning_unit.id,
+                        'coins': 0,
+                        'existing': 'yes'
+                    }
                 if scenario.is_weighted:
-                    coins = pu.coins
-                else:
-                    coins = None
-                area = pu.planning_unit.geometry
-                # TODO: insert attribute 'existing' = True
-                # TODO: insert attribute 'coins' = coins
-                selected_planning_units.append({'area': area, 'coins': coins, 'existing': 'yes'})\
+                    try:
+                        coin_assignment = CoinAssignment.objects.get(
+                            response=response,
+                            scenario=scenario,
+                            planning_unit=pua.planning_unit
+                        )
+                        selected_planning_units[pu_id]['properties']['coins'] = coin_assignment.coins
+                    except CoinAssignment.DoesNotExist:
+                        pass
 
             if len(form.fields) == 0 and len(selected_planning_units) == 0:
                 # No planning unit selected yet, redirect to area selection
-                return survey_scenario_area(request, response_id, scenario_id)
-        else:
-            selected_planning_units = []
-            
+                jump_to_area_selection = True
+                # return survey_scenario_area(request, response_id, scenario_id)
+
+            for pu in selected_planning_units.values():
+                feature = {
+                    "type": "Feature",
+                    "geometry": pu['geometry'],
+                    "properties": pu['properties']
+                }
+                feature_collection['features'].append(feature)
 
         context = {
             'response': response,
@@ -381,9 +405,10 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
             'response_id': response.id,
             'scenario_id': scenario.id,
             'next_scenario_id': next_scenario.id if next_scenario else False,
+            'jump_to_area_selection': jump_to_area_selection,
             'is_spatial': scenario.is_spatial,
             'is_weighted': scenario.is_weighted,
-            'planning_units_geojson': selected_planning_units,
+            'planning_units_geojson': feature_collection,
             'minimum_coins': scenario.min_coins_per_pu,
             'maximum_coins': scenario.max_coins_per_pu,
             'total_coins': scenario.total_coins,
@@ -456,6 +481,7 @@ def survey_scenario_area(request, response_id, scenario_id, unit_id=None, templa
             'message': 'Area form loaded.',
             'html': rendered.content.decode('utf-8'),
             'scenario_id': scenario.id,
+            'response_id': response_id,
             'next_scenario_id': next_scenario.id if next_scenario else False,
             'is_spatial': scenario.is_spatial,
             'is_weighted': scenario.is_weighted,
