@@ -199,7 +199,7 @@ function loadSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId) {
                 }
                 if (data.jump_to_area_selection) {
                     if (data.planning_units_geojson.length === 0) {
-                        loadSurveyScenarioSpatialSelectionForm(data.response_id, data.scenario_id);
+                        app.survey.loadSurveyScenarioSpatialSelectionForm(data.response_id, data.scenario_id);
                     } else {
                         loadSurveyScenarioSpatialStatus(data.response_id, data.scenario_id);
                     }
@@ -509,7 +509,17 @@ app.survey.pu_assign_next_clicked = function() {
 //     });
 // }
 
-function loadSurveyScenarioSpatialSelectionForm(responseId, scenarioId, unitId) {
+app.survey.loadSurveyScenarioSpatialSelectionForm = function(responseId, scenarioId, unitId) {
+    if (!responseId) {
+        if (app.survey.response_id) {
+            responseId = app.survey.response_id;
+        }
+    }
+    if (!scenarioId) {
+        if (app.survey.scenario.id) {
+            scenarioId = app.survey.scenario.id;
+        }
+    }
     if (unitId) {
         url = '/survey/area/'+responseId+'/'+scenarioId+'/'+unitId+'/';
     } else {
@@ -534,6 +544,7 @@ function loadSurveyScenarioSpatialSelectionForm(responseId, scenarioId, unitId) 
             $('#myplanner-survey-dialog-body').html(data.html);
             $('#myplanner-survey-dialog-next').off('click');
             $('#myplanner-survey-dialog-next').on('click', app.survey.pu_assign_next_clicked);
+            showNextButton();
             // Set logic for 'next' button
             app.survey.loadPlanningUnitsLayer(data.planning_units_geojson);
             if (data.is_weighted) {

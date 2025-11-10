@@ -271,9 +271,21 @@ class PlanningUnitForm(Form):
                     answer, created = PlanningUnitAnswer.objects.get_or_create(
                         response=response,
                         question=question,
-                        planning_unit__pk=pu_id
+                        planning_unit=pu
                     )
 
                     save_related_answer(question, answer, answer_value, PlanningUnitQuestionOption)
+        # Update/Create CoinAssignments
+        for pu in selected_planning_units:
+            coin_field_name = f'scenario_{scenario.id}_coin_assignment'
+            if coin_field_name in self.cleaned_data:
+                coins_assigned = self.cleaned_data[coin_field_name]
+                coin_assignment, created = CoinAssignment.objects.get_or_create(
+                    response=response,
+                    scenario=scenario,
+                    planning_unit=pu
+                )
+                coin_assignment.coins_assigned = coins_assigned
+                coin_assignment.save()
 
         return response

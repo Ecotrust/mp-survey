@@ -4,10 +4,39 @@
     {% if scenario.name and scenario.name != survey.title %}
         <h4>{{ scenario.name }}</h4>
     {% endif %} 
+    {% if scenario.is_weighted %}
+        <table>
+            <tr>
+                <td>Coins assigned:</td>
+                <td id="scenario-coins-assigned">{{ scenario_status.coins_assigned }}</td>
+            </tr>
+            <tr>
+                <td>Areas Selected:</td>
+                <td id="scenario-areas-selected">{{ scenario_status.areas_selected }}</td>
+            </tr>
+            <!-- <tr>
+                <td>Assign Coins:</td>
+                <td id="scenario-assign-coins">
+                    {{ scenario.coins_question }}
+                </td>
+            </tr> -->
+        </table>
+    {% endif %}
     <form method="post">
         {% csrf_token %}
         {% block myplanner_survey_form_inner %}
             {{ block.super }}
         {% endblock myplanner_survey_form_inner %}
     </form>
+    {% if scenario.is_spatial %}
+        <div id="survey-scenario-spatial-selection-panel">
+            <button type="button" id="survey-scenario-pu-select-areas-button" class="btn btn-secondary" onclick="app.survey.loadSurveyScenarioSpatialSelectionForm({{response.id}}, {{scenario.id}})">Select Areas</button>
+            {% if scenario_status.areas_selected > 0 %}
+                Click on any current area to view or edit its details.
+                <!-- <button type="button" class="btn btn-secondary" onclick="app.survey.clearPlanningUnitSelection()">Clear Selection</button> -->
+            {% else %}
+                <p>No planning units have been defined for this scenario.</p>
+            {% endif %}
+        </div>
+    {% endif %}
 {% endblock myplanner_survey_form %}

@@ -367,7 +367,7 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
                             scenario=scenario,
                             planning_unit=pua.planning_unit
                         )
-                        selected_planning_units[pu_id]['properties']['coins'] = coin_assignment.coins
+                        selected_planning_units[pu_id]['properties']['coins'] = coin_assignment.coins_assigned
                     except CoinAssignment.DoesNotExist:
                         pass
 
@@ -404,6 +404,7 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
             'survey_id': response.survey.id,
             'response_id': response.id,
             'scenario_id': scenario.id,
+            'scenario_status': scenario_status,
             'next_scenario_id': next_scenario.id if next_scenario else False,
             'jump_to_area_selection': jump_to_area_selection,
             'is_spatial': scenario.is_spatial,
