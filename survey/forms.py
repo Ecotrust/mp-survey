@@ -223,7 +223,7 @@ class PlanningUnitForm(Form):
         if scenario:
             if scenario.is_weighted:
                 available_coins = response.scenario_status(scenario.id)['coins_available']
-                allocated_coins = None
+                allocated_coins = 0
                 if unit_id is not None:
                     existing_assignment = CoinAssignment.objects.filter(
                         response=response,
@@ -235,11 +235,15 @@ class PlanningUnitForm(Form):
                 self.fields['scenario_{}_coin_assignment'.format(scenario.id)] = forms.IntegerField(
                     label='Assign Coins (Available: {})'.format(available_coins),
                     min_value=0,
-                    max_value=available_coins,
+                    max_value=available_coins+allocated_coins,
                     initial=allocated_coins
                 )
 
-            self.fields['scenario_{}_planning_unit_ids'.format(scenario.id)] = forms.CharField()
+            self.fields['scenario_{}_planning_unit_ids'.format(scenario.id)] = forms.CharField(
+                widget=forms.HiddenInput(),
+                label='',
+                initial=unit_id if unit_id is not None else ''
+            )
                 
             pu_questions = PlanningUnitQuestion.objects.filter(scenario=scenario).order_by('order')
             for question in pu_questions:

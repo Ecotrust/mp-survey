@@ -30,6 +30,9 @@ function hideSurveyForm() {
         if (app.survey.selectPlanningUnitListener) {
             app.map.un('singleclick', app.survey.selectPlanningUnitListener);
         }
+        if (app.survey.selectCoinAllocationListener) {
+            app.map.un('singleclick', app.survey.selectCoinAllocationListener);
+        }
     }
     app.map.on('singleclick', app.wrapper.listeners['singleclick']);
     app.viewModel.scenarios.externalForm(false);
@@ -206,6 +209,9 @@ function loadSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId) {
                 }
             } 
             if (!data.jump_to_area_selection) {
+                if (data.is_spatial) {
+                    app.map.on('singleclick', app.survey.selectCoinAllocationListener);
+                }
                 if (data.next_scenario_id) {
                     app.survey.next_scenario_id = data.next_scenario_id;
                     $('#myplanner-survey-dialog-next').off('click');
@@ -322,7 +328,7 @@ app.survey.loadPlanningUnitsLayer = function(geometries) {
     app.survey.addPlanningUnitsLayer(geometries);
 };
 
-app.survey.selectPlanningUnitListener = function(event) {
+app.survey.getFeatureFromEvent = function(event) {
     features = app.map.getFeaturesAtPixel(event.pixel);
     selected_pu_feature = false;
     for (let i = 0; i < features.length; i++) {
@@ -331,6 +337,20 @@ app.survey.selectPlanningUnitListener = function(event) {
             break;
         }
     }
+    return selected_pu_feature;
+}
+
+app.survey.selectCoinAllocationListener = function(event) {
+    selected_pu_feature = app.survey.getFeatureFromEvent(event);
+    if (selected_pu_feature) {
+        if (selected_pu_feature.get('existing') === 'yes') {
+            app.survey.loadSurveyScenarioSpatialSelectionForm(app.survey.response_id, app.survey.scenario.id, selected_pu_feature.get('id'));
+        }
+    }
+}
+
+app.survey.selectPlanningUnitListener = function(event) {
+    selected_pu_feature = app.survey.getFeatureFromEvent(event);
     if (selected_pu_feature) {
         if (selected_pu_feature.get('existing') === 'yes') {
             console.log('This Planning Unit has already been selected.');
@@ -512,19 +532,6 @@ app.survey.pu_assign_next_clicked = function() {
     // app.survey.scenario.savePlanningUnitSelection();
 }
 
-// function loadSurveyScenarioSpatialStatus(responseId, scenarioId) {
-//     $.ajax({
-//         url: '/survey/scenario/'+responseId+'/'+scenarioId+'/',
-//         type: 'GET',
-//         success: function(data) {
-//             // Handle the success response
-//         },
-//         error: function(xhr, status, error) {
-//             // Handle the error response
-//         }
-//     });
-// }
-
 app.survey.loadSurveyScenarioSpatialSelectionForm = function(responseId, scenarioId, unitId) {
     if (!responseId) {
         if (app.survey.response_id) {
@@ -536,6 +543,7 @@ app.survey.loadSurveyScenarioSpatialSelectionForm = function(responseId, scenari
             scenarioId = app.survey.scenario.id;
         }
     }
+    app.map.un('singleclick', app.survey.selectCoinAllocationListener);
     if (unitId) {
         url = '/survey/area/'+responseId+'/'+scenarioId+'/'+unitId+'/';
     } else {

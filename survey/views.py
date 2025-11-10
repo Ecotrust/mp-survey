@@ -425,7 +425,7 @@ def survey_scenario_area(request, response_id, scenario_id, unit_id=None, templa
         scenario = scenario_dict['scenario']
 
     if request.method == 'POST':
-        form = PlanningUnitForm(request.POST, response=response, scenario=scenario)
+        form = PlanningUnitForm(request.POST, response=response, scenario=scenario, unit_id=unit_id)
         if form.is_valid():
             try:
                 form.save_answers(response, scenario)
@@ -471,7 +471,7 @@ def survey_scenario_area(request, response_id, scenario_id, unit_id=None, templa
             'scenario_status': scenario_status,
             'questions': scenario.planning_unit_questions_scenario.all(),
             'user': response.user,
-            'form': PlanningUnitForm(response=response, scenario=scenario)
+            'form': PlanningUnitForm(response=response, scenario=scenario, unit_id=unit_id)
         }
 
         # TODO: Get Scenario Response, answers and summary
@@ -490,6 +490,7 @@ def survey_scenario_area(request, response_id, scenario_id, unit_id=None, templa
             'maximum_coins': scenario.max_coins_per_pu,
             'total_coins': scenario.total_coins,
             'require_all_coins': scenario.require_all_coins_used,
+            'pu_id': unit_id
         })
 
 
