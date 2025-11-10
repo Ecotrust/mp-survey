@@ -280,6 +280,15 @@ app.survey.addPlanningUnitsLayer = function(geojson_object) {
                 color: `rgba(${color[0]}, ${color[1]}, ${color[2]}, 1)`,
                 width: 2,
             }),
+            text: new ol.style.Text({
+                font: '14px Open Sans,sans-serif',
+                text: properties.coins.toString(),
+                textAlign: 'center',
+                baseline: 'middle',
+                weight: 'bold',
+                fill: new ol.style.Fill({ color: '#000' }),
+                stroke: new ol.style.Stroke({ color: '#fff', width: 3 }),
+            }),
         });
       }
       return featureStyleCache[properties.existing];
