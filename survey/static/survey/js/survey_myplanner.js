@@ -269,38 +269,45 @@ app.survey.addPlanningUnitsLayer = function(geojson_object) {
         }
     }
 
-    function getFeatureStyle(properties) {
-      if (!featureStyleCache[properties.existing]) {
-        const color = getFeatureColor(properties);
-        featureStyleCache[properties.existing] = new ol.style.Style({
-            fill: new ol.style.Fill({
-                color: `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.4)`,
-            }),
-            stroke: new ol.style.Stroke({
-                color: `rgba(${color[0]}, ${color[1]}, ${color[2]}, 1)`,
-                width: 2,
-            }),
-            text: new ol.style.Text({
-                font: '14px Open Sans,sans-serif',
-                text: properties.coins.toString(),
-                textAlign: 'center',
-                baseline: 'middle',
-                weight: 'bold',
-                fill: new ol.style.Fill({ color: '#000' }),
-                stroke: new ol.style.Stroke({ color: '#fff', width: 3 }),
-            }),
-        });
-      }
-      return featureStyleCache[properties.existing];
-    }
-
-    function selectedPUStyleFunction(feature, resolution) {
-      return getFeatureStyle(feature.getProperties());
+    function getFeatureStyle(feature, resolution) {
+        let properties = feature.getProperties();
+        let cache_key = properties.existing + '_' + properties.coins;
+        if (!featureStyleCache[cache_key]) {
+            const color = getFeatureColor(properties);
+            if (properties.coins === undefined || properties.coins === null) {
+                properties.coins = '';
+            }
+            const coins_text = properties.coins.toString();
+            if (properties.coins === undefined || properties.coins === null) {
+                properties.coins = '';
+            }
+            featureStyleCache[cache_key] = new ol.style.Style({
+                fill: new ol.style.Fill({
+                    color: `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.4)`,
+                }),
+                stroke: new ol.style.Stroke({
+                    color: `rgba(${color[0]}, ${color[1]}, ${color[2]}, 1)`,
+                    width: 2,
+                }),
+                // text: getTextStyle,
+                text: new ol.style.Text({
+                    font: '14px Open Sans,sans-serif',
+                    text: coins_text,
+                    // text: getCoinString,
+                    textAlign: 'center',
+                    baseline: 'middle',
+                    weight: 'bold',
+                    fill: new ol.style.Fill({ color: '#000' }),
+                    stroke: new ol.style.Stroke({ color: '#fff', width: 3 }),
+                }),
+            });
+        }
+        return featureStyleCache[cache_key];
     }
 
     app.survey.planningUnitLayer = new ol.layer.Vector({
         source: source,
-        style: selectedPUStyleFunction,
+        style: getFeatureStyle,
     });
 
     app.map.addLayer(app.survey.planningUnitLayer);
