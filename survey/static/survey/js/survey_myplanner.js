@@ -30,9 +30,7 @@ app.survey.disableAllMapListeners = function() {
     app.map.un('singleclick', app.wrapper.listeners['singleclick']);
 }
 
-function hideSurveyForm() {
-    refreshSurveyContent();
-
+function resetMap() {
     if (app.survey) {
         if (app.survey.planningUnitLayer) {
             app.map.removeLayer(app.survey.planningUnitLayer);
@@ -45,11 +43,19 @@ function hideSurveyForm() {
         }
     }
     app.map.on('singleclick', app.wrapper.listeners['singleclick']);
+}
+
+function hideSurveyForm() {
+    refreshSurveyContent();
+    
+    resetMap();
+    
     app.viewModel.scenarios.externalForm(false);
     $("#myplanner-survey-dialog").hide();
 }
 
 function hideNavButtons() {
+    $('#myplanner-survey-dialog-back').hide();
     $('#myplanner-survey-dialog-next').hide();
     $('#myplanner-survey-dialog-save').hide();
 }
@@ -63,6 +69,12 @@ function showSaveButton() {
     $('#myplanner-survey-dialog-next').hide();
     $('#myplanner-survey-dialog-save').show();
 }
+
+function showBackButton(backCallback) {
+    $('#myplanner-survey-dialog-back').off('click');
+    $('#myplanner-survey-dialog-back').on('click', backCallback);
+    $('#myplanner-survey-dialog-back').show();
+};
 
 function refreshSurveyContent() {
     let active_survey_layer_boxes = $('#myplanner-survey-dialog').find('input[type=checkbox]:checked');
@@ -203,6 +215,11 @@ function loadSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId) {
             app.survey.scenario.total_coins = data.total_coins;
             app.survey.scenario.require_all_coins_used = data.require_all_coins;
             app.survey.scenario.planning_units_geojson = data.planning_units_geojson;
+
+            showBackButton(function() {
+                resetMap();
+                takeSurvey(app.survey.survey_id, app.survey.response_id);
+            });
 
             $('#myplanner-survey-dialog-body').html(data.html);
             if (data.is_spatial) {
@@ -607,6 +624,9 @@ app.survey.loadSurveyScenarioSpatialSelectionForm = function(responseId, scenari
             $('#myplanner-survey-dialog-body').html(data.html);
             $('#myplanner-survey-dialog-next').off('click');
             $('#myplanner-survey-dialog-next').on('click', app.survey.pu_assign_next_clicked);
+            showBackButton(function() {
+                loadSurveyScenario(app.survey.survey_id, app.survey.response_id, app.survey.scenario.id, app.survey.next_scenario_id);
+            });
             showNextButton();
             app.survey.disableAllMapListeners();
             if (app.survey.scenario.pu) {

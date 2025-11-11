@@ -481,6 +481,7 @@ def survey_scenario_area(request, response_id, scenario_id, unit_id=None, templa
             'status_code': 200,
             'message': 'Area form loaded.',
             'html': rendered.content.decode('utf-8'),
+            'survey_id': response.survey.id,
             'scenario_id': scenario.id,
             'response_id': response_id,
             'next_scenario_id': next_scenario.id if next_scenario else False,
