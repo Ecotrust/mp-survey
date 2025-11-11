@@ -20,6 +20,16 @@ function showSurveyForm() {
     $("#myplanner-survey-dialog").show();
 }
 
+app.survey.disableAllMapListeners = function() {
+    if (app.survey.selectPlanningUnitListener) {
+        app.map.un('singleclick', app.survey.selectPlanningUnitListener);
+    }
+    if (app.survey.selectCoinAllocationListener) {
+        app.map.un('singleclick', app.survey.selectCoinAllocationListener);
+    }
+    app.map.un('singleclick', app.wrapper.listeners['singleclick']);
+}
+
 function hideSurveyForm() {
     refreshSurveyContent();
 
@@ -211,6 +221,7 @@ function loadSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId) {
             if (!data.jump_to_area_selection) {
                 if (data.is_spatial) {
                     app.map.on('singleclick', app.survey.selectCoinAllocationListener);
+                    app.map.on('singleclick', app.wrapper.listeners['singleclick']);
                 }
                 if (data.next_scenario_id) {
                     app.survey.next_scenario_id = data.next_scenario_id;
@@ -268,7 +279,9 @@ app.survey.addPlanningUnitsLayer = function(geojson_object) {
     let featureStyleCache = {};
 
     function getFeatureColor(properties) {
-        if (properties.existing == 'yes') {
+        if (properties.editing === true ) {
+            return [220, 220, 0];
+        } else if (properties.existing == 'yes') {
             return [216, 125, 27];
         } else {
             return [134, 216, 27];
@@ -278,6 +291,9 @@ app.survey.addPlanningUnitsLayer = function(geojson_object) {
     function getFeatureStyle(feature, resolution) {
         let properties = feature.getProperties();
         let cache_key = properties.existing + '_' + properties.coins;
+        if (feature.get('editing') === true) {
+            cache_key += '_editing';
+        }
         if (!featureStyleCache[cache_key]) {
             const color = getFeatureColor(properties);
             if (properties.coins === undefined || properties.coins === null) {
@@ -521,6 +537,7 @@ app.survey.pu_assign_next_clicked = function() {
         url,
         function(saveData) {
             if (saveData.status === 'success') {
+                app.survey.clearHighlightedAssignments();
                 loadSurveyScenario(app.survey.survey_id, app.survey.response_id, app.survey.scenario.id, app.survey.next_scenario_id);
             } else {
                 window.alert('Error saving selected areas. Please try again.');
@@ -530,6 +547,28 @@ app.survey.pu_assign_next_clicked = function() {
 
 
     // app.survey.scenario.savePlanningUnitSelection();
+}
+
+app.survey.highlightSelectedAssignment = function(planning_unit_id) {
+    let features = app.survey.planningUnitLayer.getSource().getFeatures();
+    for (let i = 0; i < features.length; i++) {
+        let feature = features[i];
+        if (feature.get('id') == planning_unit_id) {
+            // highlight feature
+            feature.set('editing', true);
+            // prevents selection style from interfering
+            app.map.removeInteraction(app.map.interactions.selectClick)
+            break;
+        }
+    }
+}
+
+app.survey.clearHighlightedAssignments = function() {
+    let features = app.survey.planningUnitLayer.getSource().getFeatures();
+    for (let i = 0; i < features.length; i++) {
+        features[i].unset('editing');
+    }
+    app.map.addInteraction(app.map.interactions.selectClick)
 }
 
 app.survey.loadSurveyScenarioSpatialSelectionForm = function(responseId, scenarioId, unitId) {
@@ -569,8 +608,13 @@ app.survey.loadSurveyScenarioSpatialSelectionForm = function(responseId, scenari
             $('#myplanner-survey-dialog-next').off('click');
             $('#myplanner-survey-dialog-next').on('click', app.survey.pu_assign_next_clicked);
             showNextButton();
+            app.survey.disableAllMapListeners();
+            if (app.survey.scenario.pu) {
+                app.survey.highlightSelectedAssignment(app.survey.scenario.pu);
+            } else {
+                app.survey.clearHighlightedAssignments();
+            }
             // Set logic for 'next' button
-            app.survey.loadPlanningUnitsLayer(data.planning_units_geojson);
             if (data.is_weighted) {
                 $('#id_scenario_'+app.survey.scenario.id+'_coin_assignment').on('change', app.survey.setCoinsAssigned);
             }
@@ -579,7 +623,6 @@ app.survey.loadSurveyScenarioSpatialSelectionForm = function(responseId, scenari
             $('#myplanner-survey-dialog-body').html(
                 '<h3>Error loading survey scenario area selection form. Please try again later.</h3>'
             );
-            // hideNavButtons();
         }
     });
 }
