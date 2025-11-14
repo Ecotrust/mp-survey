@@ -1,5 +1,6 @@
 from datetime import datetime
 import json
+from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
@@ -288,6 +289,7 @@ def get_scenario_response(request, response_id, scenario_id):
         'status': status
     }
 
+@login_required
 def survey_scenario(request, response_id, scenario_id, template='survey/survey_myplanner_scenario_form.html'):
     scenario_dict = get_scenario_response(request, response_id, scenario_id)
     if scenario_dict['error'] is not None:
@@ -415,7 +417,47 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
             'total_coins': scenario.total_coins,
             'require_all_coins': scenario.require_all_coins_used,
         })
+    
+@login_required
+def delete_survey_scenario_area(request, response_id, scenario_id, unit_id):
+    scenario_dict = get_scenario_response(request, response_id, scenario_id)
+    if scenario_dict['error'] is not None:
+        return JsonResponse(scenario_dict['error'], status=scenario_dict['status'])
+    else:
+        response = scenario_dict['response']
+        scenario = scenario_dict['scenario']
 
+    try:
+        pu_answers = PlanningUnitAnswer.objects.filter(
+            response=response,
+            question__scenario=scenario,
+            planning_unit__id=unit_id
+        )
+        for pu_answer in pu_answers:
+            pu_answer.delete()
+
+        # Also delete any coin assignments for this planning unit
+        CoinAssignment.objects.get(
+            response=response,
+            scenario=scenario,
+            planning_unit__id=unit_id
+        ).delete()
+
+        return JsonResponse({
+            'status': 'success',
+            'status_code': 200,
+            'message': 'Planning unit answer deleted successfully.',
+            'response_id': response.id,
+            'survey_id': response.survey.id
+        })
+    except PlanningUnitAnswer.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'status_code': 404,
+            'message': 'Planning unit answer not found.'
+        }, status=404)
+
+@login_required
 def survey_scenario_area(request, response_id, scenario_id, unit_id=None, template='survey/survey_myplanner_unit_form.html'):
     scenario_dict = get_scenario_response(request, response_id, scenario_id)
     if scenario_dict['error'] is not None:
@@ -495,7 +537,7 @@ def survey_scenario_area(request, response_id, scenario_id, unit_id=None, templa
             'pu_id': unit_id
         })
 
-
+@login_required
 def get_scenario_pu_by_coordinates(request, scenario_id, x_coord=None, y_coord=None):
     try:
         scenario = Scenario.objects.get(id=scenario_id)

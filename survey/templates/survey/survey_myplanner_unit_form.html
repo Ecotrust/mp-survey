@@ -28,14 +28,17 @@
                     </td>
                 </tr> -->
             </table>
-            {% if unit_id == None %}
-                <div id="survey-scenario-spatial-pu-button-panel">
+            <div id="survey-scenario-spatial-pu-button-panel">
+                {% if unit_id == None %}
                     <button type="button" id="survey-scenario-pu-select-areas-button" class="btn btn-primary"
                         onclick="app.survey.startPlanningUnitSelection({{selected_planning_units}})">Select New Areas</button>
                     <button type="button" id="survey-scenario-pu-clear-selection-button" style="display: none" disabled
                         onclick="app.survey.clearPlanningUnitSelection()" class="btn">Clear Selection</button>
-                </div>
-            {% endif %}
+                {% else %}
+                    <button type="button" id="survey-scenario-pu-remove-area-button" class="btn btn-danger"
+                        onclick="app.survey.removePlanningUnitRUS({{unit_id}})">Remove This Area</button>
+                {% endif %}
+            </div>
             <div id="survey-scenario-pu-form">
                 {{ block.super }}
             </div>

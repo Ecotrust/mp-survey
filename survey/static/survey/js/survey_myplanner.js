@@ -559,6 +559,27 @@ app.survey.stopPlanningUnitSelection = function(event) {
     // hide cancel button
 }
 
+app.survey.removePlanningUnitRUS = function(planning_unit_id) {
+        if (window.confirm("Do you want to delete this area and all of its data?")) {
+            app.survey.removePlanningUnit(planning_unit_id);
+        }
+}
+
+app.survey.removePlanningUnit = function(planning_unit_id) {
+    url = '/survey/area/delete/'+app.survey.response_id+'/'+app.survey.scenario.id+'/'+planning_unit_id+'/';
+    $.ajax({
+        url: url,
+        // type: 'POST',
+        success: function(data) {
+            if (data.status === 'success') {
+                loadSurveyScenario(app.survey.survey_id, app.survey.response_id, app.survey.scenario.id, app.survey.next_scenario_id);
+            } else {
+                window.alert('Error removing planning unit. Please try again.');
+            }
+        }
+    });
+}
+
 app.survey.pu_assign_next_clicked = function() {
     // Logic for 'next' button click
     // console.log('PU Assign Next Clicked');

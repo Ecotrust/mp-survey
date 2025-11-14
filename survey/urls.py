@@ -9,7 +9,9 @@ urlpatterns = [
     re_path(r'scenario/(?P<scenario_id>\d+)/get_area_by_point/(?P<x_coord>\d+)/(?P<y_coord>\d+)/?$', views.get_scenario_pu_by_coordinates, name='survey_scenario'),
     re_path(r'scenario/(?P<scenario_id>\d+)/get_area_by_point/?', views.get_scenario_pu_by_coordinates, name='survey_scenario'),
     re_path(r'scenario/(?P<response_id>\d+)/(?P<scenario_id>\d+)/?$', views.survey_scenario, name='survey_scenario'),
+    re_path(r'area/delete/(?P<response_id>\d+)/(?P<scenario_id>\d+)/(?P<unit_id>\d+)/?$', views.delete_survey_scenario_area, name='delete_survey_scenario_area'),
     re_path(r'area/(?P<response_id>\d+)/(?P<scenario_id>\d+)/?(?P<unit_id>\d+)?/?$', views.survey_scenario_area, name='survey_scenario_area'),
+
     re_path(r'myplanner/content/?$', views.get_myplanner_survey_content, name='get_myplanner_survey_content'),
     # re_path(r'continue/(?P<responsepk>\d+)/?$', views.survey_continue, name='survey_continue'),
     # path('<int:pk>/', views.survey_detail, name='survey_detail'),
