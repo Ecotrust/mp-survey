@@ -3,12 +3,14 @@
 {% block myplanner_survey_form %}
     {% if scenario.name and scenario.name != survey.title %}
         <h4>{{ scenario.name }}</h4>
-    {% endif %} 
+    {% endif %}
     <form method="post">
         {% csrf_token %}
         {% block myplanner_survey_form_inner %}
-            <button type="button" id="survey-scenario-pu-select-areas-button" class="btn btn-secondary" onclick="app.survey.startPlanningUnitSelection({{selected_planning_units}})">Select Areas</button>
-            <button type="button" class="btn">Clear Selection</button>
+            <button type="button" id="survey-scenario-pu-select-areas-button" class="btn btn-secondary"
+                onclick="app.survey.startPlanningUnitSelection({{selected_planning_units}})">Select Areas</button>
+            <button type="button" id="survey-scenario-pu-clear-selection-button"
+                onclick="app.survey.clearPlanningUnitSelection()" class="btn">Clear Selection</button>
             <div id="survey-scenario-pu-form">
                 <table>
                     <tr>
@@ -30,12 +32,13 @@
                         </td>
                     </tr> -->
                 </table>
-    
                 {{ block.super }}
             </div>
             <div id="survey-scenario-pu-selection-block" style="display:none;">
                 <p>Select planning units on the map by clicking on them. You can select multiple units.</p>
-                <button type="button" class="btn btn-primary" onclick="app.survey.stopPlanningUnitSelection()">Finish Area Selection</button>
+                <button type="button" class="btn btn-primary" onclick="app.survey.stopPlanningUnitSelection()">
+                    Finish Area Selection
+                </button>
             </div>
         {% endblock myplanner_survey_form_inner %}
     </form>

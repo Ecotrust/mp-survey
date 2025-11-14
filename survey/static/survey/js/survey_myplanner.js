@@ -501,6 +501,23 @@ app.survey.getNewSelectedAreaIDs = function() {
     return new_selected_areas.toString();
 }
 
+app.survey.clearPlanningUnitSelection = function() {
+    let features = app.survey.planningUnitLayer.getSource().getFeatures();
+    let features_to_remove = [];
+    for (let i = 0; i < features.length; i++) {
+        let feature = features[i];
+        if (feature.get('existing') == 'no') {
+            features_to_remove.push(feature);
+        }
+    }
+    for (let j = 0; j < features_to_remove.length; j++) {
+        app.survey.planningUnitLayer.getSource().removeFeature(features_to_remove[j]);
+    }
+    $('#scenario-areas-selected').text(app.survey.getAllScenarioAreas().length );
+    $('#id_scenario_'+app.survey.scenario.id+'_planning_unit_ids').val('');
+    app.survey.setCoinsAssigned();
+}
+
 app.survey.stopPlanningUnitSelection = function(event) {
     $('#survey-scenario-pu-selection-block').hide();
     app.survey.setCoinsAssigned();
