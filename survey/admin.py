@@ -53,6 +53,7 @@ class PlanningUnitQuestionsInline(nested_admin.NestedStackedInline):
 class ScenarioInline(nested_admin.NestedStackedInline):
     model = Scenario
     extra = 0
+    max_num = 1
     classes = ['collapse', 'show']
     inlines = [ScenarioQuestionsInline, PlanningUnitQuestionsInline]
 
