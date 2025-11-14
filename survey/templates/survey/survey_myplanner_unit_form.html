@@ -7,31 +7,36 @@
     <form method="post">
         {% csrf_token %}
         {% block myplanner_survey_form_inner %}
-            <button type="button" id="survey-scenario-pu-select-areas-button" class="btn btn-secondary"
-                onclick="app.survey.startPlanningUnitSelection({{selected_planning_units}})">Select Areas</button>
-            <button type="button" id="survey-scenario-pu-clear-selection-button"
-                onclick="app.survey.clearPlanningUnitSelection()" class="btn">Clear Selection</button>
+            
+            <table>
+                <tr>
+                    <td>Coins assigned:</td>
+                    <td id="scenario-coins-assigned">{{ scenario_status.coins_assigned }}</td>
+                </tr>
+                <!-- <tr>
+                    <td>Coins Available:</td>
+                    <td id="scenario-coins-available">{{ scenario_status.coins_available }}</td>
+                </tr> -->
+                <tr>
+                    <td>Areas Selected:</td>
+                    <td id="scenario-areas-selected">{{ scenario_status.areas_selected }}</td>
+                </tr>
+                <!-- <tr>
+                    <td>Assign Coins:</td>
+                    <td id="scenario-assign-coins">
+                        {{ scenario.coins_question }}
+                    </td>
+                </tr> -->
+            </table>
+            {% if unit_id == None %}
+                <div id="survey-scenario-spatial-pu-button-panel">
+                    <button type="button" id="survey-scenario-pu-select-areas-button" class="btn btn-primary"
+                        onclick="app.survey.startPlanningUnitSelection({{selected_planning_units}})">Select New Areas</button>
+                    <button type="button" id="survey-scenario-pu-clear-selection-button" style="display: none" disabled
+                        onclick="app.survey.clearPlanningUnitSelection()" class="btn">Clear Selection</button>
+                </div>
+            {% endif %}
             <div id="survey-scenario-pu-form">
-                <table>
-                    <tr>
-                        <td>Coins assigned:</td>
-                        <td id="scenario-coins-assigned">{{ scenario_status.coins_assigned }}</td>
-                    </tr>
-                    <!-- <tr>
-                        <td>Coins Available:</td>
-                        <td id="scenario-coins-available">{{ scenario_status.coins_available }}</td>
-                    </tr> -->
-                    <tr>
-                        <td>Areas Selected:</td>
-                        <td id="scenario-areas-selected">{{ scenario_status.areas_selected }}</td>
-                    </tr>
-                    <!-- <tr>
-                        <td>Assign Coins:</td>
-                        <td id="scenario-assign-coins">
-                            {{ scenario.coins_question }}
-                        </td>
-                    </tr> -->
-                </table>
                 {{ block.super }}
             </div>
             <div id="survey-scenario-pu-selection-block" style="display:none;">

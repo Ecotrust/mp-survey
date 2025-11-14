@@ -471,6 +471,7 @@ def survey_scenario_area(request, response_id, scenario_id, unit_id=None, templa
             'scenario_status': scenario_status,
             'questions': scenario.planning_unit_questions_scenario.all(),
             'user': response.user,
+            'unit_id': unit_id,
             'form': PlanningUnitForm(response=response, scenario=scenario, unit_id=unit_id)
         }
 
