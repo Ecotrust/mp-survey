@@ -45,6 +45,13 @@ function resetMap() {
     app.map.on('singleclick', app.wrapper.listeners['singleclick']);
 }
 
+app.survey.cancelEditsRUS = function() {
+    if (window.confirm("Do you quit this survey? You can resume later, but some answers may not be saved.")) {
+        hideSurveyForm();
+    }
+    
+}
+
 function hideSurveyForm() {
     refreshSurveyContent();
     
