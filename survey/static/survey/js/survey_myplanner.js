@@ -46,7 +46,7 @@ function resetMap() {
 }
 
 app.survey.cancelEditsRUS = function() {
-    if (window.confirm("Do you quit this survey? You can resume later, but some answers may not be saved.")) {
+    if (window.confirm("Do you want to quit this survey? You can resume later, but some answers may not be saved.")) {
         hideSurveyForm();
     }
     
