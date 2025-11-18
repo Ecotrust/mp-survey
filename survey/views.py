@@ -5,7 +5,6 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.utils import timezone
-from urllib import response
 from urllib.parse import urlparse, parse_qs, unquote
 
 from .forms import SurveyResponseForm, ScenarioForm, PlanningUnitForm
