@@ -377,7 +377,7 @@ app.survey.loadPlanningUnitsLayer = function(geometries) {
 };
 
 app.survey.getFeatureFromEvent = function(event) {
-    features = app.map.getFeaturesAtPixel(event.pixel);
+    let features = app.map.getFeaturesAtPixel(event.pixel);
     selected_pu_feature = false;
     for (let i = 0; i < features.length; i++) {
         if (app.survey.planningUnitLayer.getSource().hasFeature(features[i])) {
