@@ -428,7 +428,7 @@ app.survey.selectPlanningUnitListener = function(event) {
                 success: function(data) {
                     if (data.status === 'success') {
                         if (data.planning_unit_geometry !== null && data.planning_unit_geometry !== undefined) {
-                            geometry_geojson = {
+                            let geometry_geojson = {
                                 'type': 'FeatureCollection',
                                 'crs': {
                                     'type': 'name',
