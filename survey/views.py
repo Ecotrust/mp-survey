@@ -1,4 +1,3 @@
-from datetime import datetime
 import json
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
@@ -9,7 +8,7 @@ from urllib.parse import urlparse, parse_qs, unquote
 
 from .forms import SurveyResponseForm, ScenarioForm, PlanningUnitForm
 from .models import (
-    CoinAssignment, Survey, SurveyLayerGroup, SurveyResponse, Scenario, ScenarioAnswer, 
+    CoinAssignment, Survey, SurveyLayerGroup, SurveyResponse, Scenario,  
     PlanningUnitAnswer
 )
 
@@ -92,7 +91,7 @@ def save_survey_response(request, response):
         'status': 'error',
         'status_code': 400,
         'message': error_message,
-        'errors': form.errors
+        'errors': form.errors if form else error_message
     }
 
 def get_survey_response(request, surveypk, responsepk=None):
@@ -267,7 +266,6 @@ def get_scenario_response(request, response_id, scenario_id):
                 'message': 'Scenario not found in this survey.'
             }
             status = 404
-            pass
     except SurveyResponse.DoesNotExist:
         response = None
         scenario = None
@@ -277,7 +275,6 @@ def get_scenario_response(request, response_id, scenario_id):
             'message': 'Survey response not found.'
         }
         status = 404
-        pass
 
     return {
         'response': response,
@@ -368,6 +365,7 @@ def survey_scenario(request, response_id, scenario_id, template='survey/survey_m
                         )
                         selected_planning_units[pu_id]['properties']['coins'] = coin_assignment.coins_assigned
                     except CoinAssignment.DoesNotExist:
+                        # in this case we do not need to add 'coins' to the unit's properties
                         pass
 
             if len(form.fields) == 0 and len(selected_planning_units) == 0:
