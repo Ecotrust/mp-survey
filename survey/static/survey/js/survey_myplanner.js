@@ -421,7 +421,7 @@ app.survey.selectPlanningUnitListener = function(event) {
     } else {
         if (event.pixel) {
             let coordinate = app.map.getCoordinateFromPixel(event.pixel);
-            url = '/survey/scenario/' + app.survey.scenario.id + '/get_area_by_point?x=' + coordinate[0] + '&y=' + coordinate[1];
+            let url = '/survey/scenario/' + app.survey.scenario.id + '/get_area_by_point?x=' + coordinate[0] + '&y=' + coordinate[1];
             $.ajax({
                 url: url,
                 type: 'GET',
