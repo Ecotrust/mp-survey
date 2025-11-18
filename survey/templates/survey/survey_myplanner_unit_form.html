@@ -1,0 +1,53 @@
+{% extends "survey/survey_response_form.html" %}
+
+{% block myplanner_survey_form %}
+    {% if scenario.name and scenario.name != survey.title %}
+        <h4>{{ scenario.name }}</h4>
+    {% endif %}
+    <form method="post">
+        {% csrf_token %}
+        {% block myplanner_survey_form_inner %}
+            
+            <table>
+                <tr>
+                    <td>Coins assigned:</td>
+                    <td id="scenario-coins-assigned">{{ scenario_status.coins_assigned }}</td>
+                </tr>
+                <!-- <tr>
+                    <td>Coins Available:</td>
+                    <td id="scenario-coins-available">{{ scenario_status.coins_available }}</td>
+                </tr> -->
+                <tr>
+                    <td>Areas Selected:</td>
+                    <td id="scenario-areas-selected">{{ scenario_status.areas_selected }}</td>
+                </tr>
+                <!-- <tr>
+                    <td>Assign Coins:</td>
+                    <td id="scenario-assign-coins">
+                        {{ scenario.coins_question }}
+                    </td>
+                </tr> -->
+            </table>
+            <div id="survey-scenario-spatial-pu-button-panel">
+                {% if unit_id == None %}
+                    <button type="button" id="survey-scenario-pu-select-areas-button" class="btn btn-primary"
+                        onclick="app.survey.startPlanningUnitSelection({{selected_planning_units}})">Select New Areas</button>
+                    <button type="button" id="survey-scenario-pu-clear-selection-button" style="display: none" disabled
+                        onclick="app.survey.clearPlanningUnitSelection()" class="btn">Clear Selection</button>
+                {% else %}
+                    <button type="button" id="survey-scenario-pu-remove-area-button" class="btn btn-danger"
+                        onclick="app.survey.removePlanningUnitRUS({{unit_id}})">Remove This Area</button>
+                {% endif %}
+            </div>
+            <div id="survey-scenario-pu-form">
+                {{ block.super }}
+            </div>
+            <div id="survey-scenario-pu-selection-block" style="display:none;">
+                <p>Select planning units on the map by clicking on them. You can select multiple units.</p>
+                <button type="button" class="btn btn-primary" onclick="app.survey.stopPlanningUnitSelection()">
+                    Finish Area Selection
+                </button>
+            </div>
+        {% endblock myplanner_survey_form_inner %}
+    </form>
+{% endblock myplanner_survey_form %}

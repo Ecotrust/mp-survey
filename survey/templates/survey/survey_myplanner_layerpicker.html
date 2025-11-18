@@ -1,0 +1,29 @@
+<!-- populated dynamically -->
+ {% for group in layer_groups.values %}
+ <h4
+    id="myplanner-survey-layers-group-{{group.id}}-header"
+    onclick="toggleLayersGroup('myplanner-survey-layers-group-{{group.id}}')"
+    class="active"
+>
+    {{ group.name }} 
+    <span class="myplanner-survey-layer-group-collapse">
+        <i class="fa fa-chevron-down"></i>
+    </span>
+ </h4>
+ <div id="myplanner-survey-layers-group-{{group.id}}" class="survey-layer-group" >
+    <ul>
+        {% for layer in group.layers %}
+            <li>
+                <input 
+                    type="checkbox" 
+                    class="myplanner-survey-layer-checkbox" 
+                    data-layer-id="{{ layer.id }}" 
+                    onchange="app.survey.toggleSurveyLayer(event, {{ layer.id }})"
+                    {% if layer.auto_show %}checked{% endif %}
+                > 
+                {{ layer.name }}
+            </li>
+        {% endfor %}
+    </ul>
+ </div>
+ {% endfor %}

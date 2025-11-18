@@ -1,0 +1,20 @@
+<!-- GROUP SURVEYS -->
+<div class="accordion">
+    <div>
+        <div class="accordion-group">
+            <div id="group-surveys-header" class="accordion-heading">
+                <div>
+                    <a class="accordion-toggle">
+                        <span>Group Surveys</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="accordion-body" id="survey-planner-content">
+                {% include 'survey/survey_myplanner_content.html' with GROUP_SURVEYS=GROUP_SURVEYS SURVEY_STATUS=SURVEY_STATUS %}
+            </div>
+
+        </div>
+    </div>
+</div>
+<!-- GROUP SURVEYS -->
