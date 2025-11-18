@@ -69,22 +69,6 @@ class ImportPlanningUnitsTest(TestCase):
             self.assertIsInstance(unit.geometry, MultiPolygon)
             self.assertEqual(unit.geometry.geom_type, 'MultiPolygon')
 
-    # def test_attribute_import(self):
-    #     """Test that feature attributes are correctly imported."""
-    #     # Run the import command
-    #     call_command('import_planning_units', self.test_file_path)
-    # 
-    #     # Check that attributes are correctly imported
-    #     planning_units = PlanningUnit.objects.all().order_by('id')
-    #     self.assertEqual(len(planning_units), 5, "Should import exactly 5 planning units")
-    #     
-    #     # Check that key attributes are present
-    #     unit1 = planning_units[0]
-    #     self.assertIn('OBJECTID', unit1.attributes)
-    #     self.assertIn('Grid_ID', unit1.attributes)
-    #     self.assertIn('Cell_ID', unit1.attributes)
-    #     self.assertIn('Shape_Area', unit1.attributes)
-
     def test_error_nonexistent_file(self):
         """Test that CommandError is raised for non-existent files."""
         with self.assertRaises(CommandError) as cm:
@@ -257,7 +241,7 @@ class SurveyModelTests(TestCase):
             end_date=timezone.now() + timedelta(days=30)
         )
         self.assertEqual(survey.title, 'Test Survey')
-        self.assertTrue(survey.allow_multiple_responses is False)
+        self.assertEqual(survey.allow_multiple_responses, False)
         
     def test_survey_get_scenarios(self):
         """Test getting scenarios in order"""
@@ -664,7 +648,7 @@ class SurveyViewTests(TestCase):
         
     def test_survey_start_no_permission(self):
         """Test starting survey without permission"""
-        other_group = Group.objects.create(name='othergroup')
+        # other_group = Group.objects.create(name='othergroup')
         self.other_user = User.objects.create_user(
             username='otheruser',
             email='othertest@example.com',
@@ -704,7 +688,6 @@ class SurveyViewTests(TestCase):
             reverse('survey:survey_start', kwargs={'surveypk': self.survey.pk})
         )
         data = json.loads(response.content)
-        response_id = data['response_id']
         
         # Then post answer
         post_data = {

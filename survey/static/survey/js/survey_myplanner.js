@@ -377,8 +377,8 @@ app.survey.loadPlanningUnitsLayer = function(geometries) {
 };
 
 app.survey.getFeatureFromEvent = function(event) {
-    features = app.map.getFeaturesAtPixel(event.pixel);
-    selected_pu_feature = false;
+    let features = app.map.getFeaturesAtPixel(event.pixel);
+    let selected_pu_feature = false;
     for (let i = 0; i < features.length; i++) {
         if (app.survey.planningUnitLayer.getSource().hasFeature(features[i])) {
             selected_pu_feature = features[i];
@@ -389,7 +389,7 @@ app.survey.getFeatureFromEvent = function(event) {
 }
 
 app.survey.selectCoinAllocationListener = function(event) {
-    selected_pu_feature = app.survey.getFeatureFromEvent(event);
+    let selected_pu_feature = app.survey.getFeatureFromEvent(event);
     if (selected_pu_feature) {
         if (selected_pu_feature.get('existing') === 'yes') {
             app.survey.loadSurveyScenarioSpatialSelectionForm(app.survey.response_id, app.survey.scenario.id, selected_pu_feature.get('id'));
@@ -410,10 +410,10 @@ app.survey.toggleClearSelectionEnabled = function() {
 }
 
 app.survey.selectPlanningUnitListener = function(event) {
-    selected_pu_feature = app.survey.getFeatureFromEvent(event);
+    let selected_pu_feature = app.survey.getFeatureFromEvent(event);
     if (selected_pu_feature) {
         if (selected_pu_feature.get('existing') === 'yes') {
-            console.log('This Planning Unit has already been selected.');
+            // console.log('This Planning Unit has already been selected.');
             return;
         } else{
             app.survey.planningUnitLayer.getSource().removeFeature(selected_pu_feature);
@@ -573,7 +573,7 @@ app.survey.removePlanningUnitRUS = function(planning_unit_id) {
 }
 
 app.survey.removePlanningUnit = function(planning_unit_id) {
-    url = '/survey/area/delete/'+app.survey.response_id+'/'+app.survey.scenario.id+'/'+planning_unit_id+'/';
+    let url = '/survey/area/delete/'+app.survey.response_id+'/'+app.survey.scenario.id+'/'+planning_unit_id+'/';
     $.ajax({
         url: url,
         // type: 'POST',
@@ -673,10 +673,9 @@ app.survey.loadSurveyScenarioSpatialSelectionForm = function(responseId, scenari
         }
     }
     app.map.un('singleclick', app.survey.selectCoinAllocationListener);
+    let url = '/survey/area/'+responseId+'/'+scenarioId+'/';
     if (unitId) {
-        url = '/survey/area/'+responseId+'/'+scenarioId+'/'+unitId+'/';
-    } else {
-        url = '/survey/area/'+responseId+'/'+scenarioId+'/';
+        url += unitId+'/';
     }
     $.ajax({
         url: url,

@@ -1,16 +1,16 @@
 from dal import autocomplete
 from django import forms
 from django.core.cache import cache
-from django.forms import ModelForm, Form, BaseModelForm
+from django.forms import ModelForm, Form
 from tempfile import NamedTemporaryFile
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from layers.models import Layer
 from .models import (
     SurveyResponse, SurveyQuestion, SurveyAnswer, SurveyQuestionOption,
-    Scenario, ScenarioQuestion, PlanningUnitQuestion, ScenarioAnswer,
-    ScenarioQuestionOption, PlanningUnitAnswer, PlanningUnitQuestionOption,
-    CoinAssignment, PlanningUnit, PlanningUnitFamily, SurveyLayerOrder,
+    PlanningUnitQuestion, ScenarioAnswer, ScenarioQuestionOption, 
+    PlanningUnitAnswer, PlanningUnitQuestionOption, CoinAssignment, 
+    PlanningUnit, PlanningUnitFamily, SurveyLayerOrder,
 )
 
 def populate_question_fields(instance, question, field_name, initial_answer=None):

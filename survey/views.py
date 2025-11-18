@@ -574,32 +574,6 @@ def get_scenario_pu_by_coordinates(request, scenario_id, x_coord=None, y_coord=N
         'planning_unit_id': planning_unit.id,
         'planning_unit_geometry': planning_unit.geometry.geojson
     })
-    
-# def get_scenario_areas(request, response_id, scenario_id):
-#     scenario_dict = get_scenario_response(request, response_id, scenario_id)
-#     if scenario_dict['error'] is not None:
-#         return JsonResponse(scenario_dict['error'], status=scenario_dict['status'])
-#     else:
-#         response = scenario_dict['response']
-#         scenario = scenario_dict['scenario']
-
-#     planning_unit_answers = PlanningUnitAnswer.objects.filter(response=response)
-
-#     selected_planning_units = []
-#     for pu in planning_unit_answers:
-#         if scenario.is_weighted:
-#             coins = pu.coins
-#         else:
-#             coins = None
-#         area = pu.planning_unit.geometry
-#         selected_planning_units.append({'area': area, 'coins': coins})
-
-#     return JsonResponse({
-#         'status': 'success',
-#         'status_code': 200,
-#         'message': 'Planning units retrieved successfully.',
-#         'selected_planning_units': selected_planning_units
-#     })
 
 def get_response_form(response, request, template='survey/survey_response_form.html'):
     if response is None or request is None:

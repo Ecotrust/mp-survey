@@ -432,8 +432,8 @@ class SurveyResponse(models.Model):
             for pua in self.planningunitanswer_response.all():
                 if pua.planning_unit.id not in selected_pu_ids:
                     selected_pu_ids.append(pua.planning_unit.id)
-            for pu_id in selected_pu_ids:
-                pu = PlanningUnit.objects.get(id=pu_id)
+            planning_units = PlanningUnit.objects.filter(pk__in=selected_pu_ids)
+            for pu in planning_units:
                 for question in required_pu_questions:
                     if not self.planningunitanswer_response.filter(question=question, planning_unit=pu).exists():
                         scenario_status['planning_unit_questions_completed'] = False

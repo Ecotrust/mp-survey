@@ -172,15 +172,7 @@ class Command(BaseCommand):
                 )
                 continue
 
-            # Extract attributes
-            # attributes = {}
-            # for j in range(feature.GetFieldCount()):
-            #     field_defn = feature.GetFieldDefnRef(j)
-            #     field_name = field_defn.GetName()
-            #     field_value = feature.GetField(j)
-            #     attributes[field_name] = field_value
-
-            features.append({"geometry": geos_geometry})  # , "attributes": attributes})
+            features.append({"geometry": geos_geometry})
 
         data_source = None  # Close the data source
         return features
