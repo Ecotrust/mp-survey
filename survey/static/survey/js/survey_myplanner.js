@@ -46,7 +46,7 @@ function resetMap() {
 }
 
 app.survey.cancelEditsRUS = function() {
-    if (window.confirm("Do you quit this survey? You can resume later, but some answers may not be saved.")) {
+    if (window.confirm("Do you want to quit this survey? You can resume later, but some answers may not be saved.")) {
         hideSurveyForm();
     }
     
@@ -421,14 +421,14 @@ app.survey.selectPlanningUnitListener = function(event) {
     } else {
         if (event.pixel) {
             let coordinate = app.map.getCoordinateFromPixel(event.pixel);
-            url = '/survey/scenario/' + app.survey.scenario.id + '/get_area_by_point?x=' + coordinate[0] + '&y=' + coordinate[1];
+            let url = '/survey/scenario/' + app.survey.scenario.id + '/get_area_by_point?x=' + coordinate[0] + '&y=' + coordinate[1];
             $.ajax({
                 url: url,
                 type: 'GET',
                 success: function(data) {
                     if (data.status === 'success') {
                         if (data.planning_unit_geometry !== null && data.planning_unit_geometry !== undefined) {
-                            geometry_geojson = {
+                            let geometry_geojson = {
                                 'type': 'FeatureCollection',
                                 'crs': {
                                     'type': 'name',
