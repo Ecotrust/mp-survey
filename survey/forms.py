@@ -1,10 +1,13 @@
 from django import forms
-from django.forms import ModelForm, Form
+from django.forms import ModelForm, Form, BaseModelForm
+from tempfile import NamedTemporaryFile
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from .models import (
     SurveyResponse, SurveyQuestion, SurveyAnswer, SurveyQuestionOption,
     Scenario, ScenarioQuestion, PlanningUnitQuestion, ScenarioAnswer,
     ScenarioQuestionOption, PlanningUnitAnswer, PlanningUnitQuestionOption,
-    CoinAssignment, PlanningUnit
+    CoinAssignment, PlanningUnit, PlanningUnitFamily
 )
 
 def populate_question_fields(instance, question, field_name, initial_answer=None):
@@ -293,3 +296,54 @@ class PlanningUnitForm(Form):
                 coin_assignment.save()
 
         return response
+    
+class PlanningUnitFamilyForm(ModelForm):
+    planning_units_count = forms.CharField(
+        label='Planning Units Count',
+        required=False,
+        widget=forms.TextInput(attrs={'readonly': 'readonly', 'class': 'form-control-plaintext'})
+    )
+    planning_units = forms.FileField(
+        label='planning units file',
+        required=False,
+        help_text='Upload a file containing planning units (zipped shapefile or GeoJSON).'
+    )
+
+    class Meta:
+        model = PlanningUnitFamily
+        fields = ['name', 'description', 'planning_units_count', 'planning_units'] # hold off on 'remote_raster' URL for now
+        # exclude = ['remote_raster']  # Exclude the planning_units field for custom handling
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            planning_unit_count = self.instance.planning_units_family.count()
+            self.fields['planning_units_count'] = forms.CharField(
+                label='Planning Units Count',
+                required=False,
+                initial='{} planning units'.format(planning_unit_count),
+                widget=forms.TextInput(attrs={'readonly': 'readonly', 'class': 'form-control-plaintext'})
+            )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not self.instance.pk:
+            if not cleaned_data.get('planning_units'):
+                raise forms.ValidationError("You must upload a file when creating a new Planning Unit Family.")
+            if PlanningUnitFamily.objects.filter(name=cleaned_data.get('name')).exists():
+                raise forms.ValidationError(f"A Planning Unit Family with the name '{cleaned_data.get('name')}' already exists.")
+            try:
+                suffix = cleaned_data['planning_units'].name.split('.')[-1].lower()
+                with NamedTemporaryFile(delete=True, suffix=f'.{suffix}') as temp_file:
+                    for chunk in cleaned_data['planning_units'].chunks():
+                        temp_file.write(chunk)
+                    temp_file.flush()
+                    input_file = temp_file.name
+                    try:
+                        call_command('import_planning_units', input_file, '--family-name', cleaned_data.get('name'))
+                    except CommandError as e:
+                        raise forms.ValidationError(f"Import failed: {str(e)}")
+            except Exception as e:
+                raise forms.ValidationError(f"An error occurred during import: {str(e)}")
+        return cleaned_data
+

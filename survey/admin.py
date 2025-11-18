@@ -3,8 +3,9 @@ import nested_admin
 from .models import (
     SurveyQuestionOption, ScenarioQuestionOption, PlanningUnitQuestionOption, 
     Survey, Scenario, SurveyQuestion, ScenarioQuestion, PlanningUnitQuestion, 
-    SurveyResponse, SurveyLayerGroup, SurveyLayerOrder
+    SurveyResponse, SurveyLayerGroup, SurveyLayerOrder, PlanningUnitFamily
 )
+from .forms import PlanningUnitFamilyForm
 
 class SurveyQuestionOptionsInline(nested_admin.NestedTabularInline):
     model = SurveyQuestionOption
@@ -63,6 +64,27 @@ class SurveyAdmin(nested_admin.NestedModelAdmin):
     ordering = ('-created_at',)
     inlines = [LayerGroupsInline, SurveyQuestionsInline, ScenarioInline]
 
+class PlanningUnitFamilyAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description')
+    search_fields = ('name', 'description')
+    form = PlanningUnitFamilyForm
+
+    def get_fields(self, request, obj=None):
+        if obj:
+            fields = ('name', 'description', 'planning_units_count')
+        else:
+            fields = ('name', 'description', 'planning_units')
+        return fields
+
+    def save_model(self, request, obj, form, change):
+        if not obj.pk:
+            # this gets saved during the clean method because we need to detect if/when there is an issue running the import script
+            new_obj = PlanningUnitFamily.objects.get(name=form.cleaned_data['name'])
+            new_obj.description = form.cleaned_data['description']
+            new_obj.save()
+        else:
+            super().save_model(request, obj, form, change)
+
 
 
 # admin.site.register(SurveyQuestion)
@@ -72,6 +94,7 @@ class SurveyAdmin(nested_admin.NestedModelAdmin):
 # admin.site.register(QuestionOption)
 # admin.site.register(Survey)
 # admin.site.register(QuestionSurveyAssociation)
+admin.site.register(PlanningUnitFamily, PlanningUnitFamilyAdmin)
 admin.site.register(SurveyResponse)
 
 admin.site.register(Survey, SurveyAdmin)
