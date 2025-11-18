@@ -84,10 +84,8 @@ def save_survey_response(request, response):
                     }
                 except Exception as e:
                     error_message = 'Error saving survey response.'
-                    pass
             except Exception as e:
                 error_message = 'Error saving answers.'
-                pass
     else:
         error_message = 'Invalid request method. Only POST requests are allowed.'
     return {
