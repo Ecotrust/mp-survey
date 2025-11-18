@@ -1,13 +1,16 @@
+from dal import autocomplete
 from django import forms
+from django.core.cache import cache
 from django.forms import ModelForm, Form, BaseModelForm
 from tempfile import NamedTemporaryFile
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from layers.models import Layer
 from .models import (
     SurveyResponse, SurveyQuestion, SurveyAnswer, SurveyQuestionOption,
     Scenario, ScenarioQuestion, PlanningUnitQuestion, ScenarioAnswer,
     ScenarioQuestionOption, PlanningUnitAnswer, PlanningUnitQuestionOption,
-    CoinAssignment, PlanningUnit, PlanningUnitFamily
+    CoinAssignment, PlanningUnit, PlanningUnitFamily, SurveyLayerOrder,
 )
 
 def populate_question_fields(instance, question, field_name, initial_answer=None):
@@ -347,3 +350,20 @@ class PlanningUnitFamilyForm(ModelForm):
                 raise forms.ValidationError(f"An error occurred during import: {str(e)}")
         return cleaned_data
 
+class SurveyLayerOrderForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        ordered_layers = cache.get('all_layers_qs')
+        if not ordered_layers:
+            ordered_layers = Layer.all_objects.all().order_by('name')
+            cache.set('all_layers_qs', ordered_layers, 60*60)  # Cache for 1 hour
+        self.fields['layer'].queryset = ordered_layers
+
+    layer = forms.ModelChoiceField(
+        queryset=None,
+        widget=autocomplete.ModelSelect2()
+    )
+
+    class Meta:
+        model = SurveyLayerOrder
+        fields =  ['auto_show', 'order', 'layer',]

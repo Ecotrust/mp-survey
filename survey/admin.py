@@ -3,9 +3,9 @@ import nested_admin
 from .models import (
     SurveyQuestionOption, ScenarioQuestionOption, PlanningUnitQuestionOption, 
     Survey, Scenario, SurveyQuestion, ScenarioQuestion, PlanningUnitQuestion, 
-    SurveyResponse, SurveyLayerGroup, SurveyLayerOrder, PlanningUnitFamily
+    SurveyResponse, SurveyLayerGroup, SurveyLayerOrder, PlanningUnitFamily,
 )
-from .forms import PlanningUnitFamilyForm
+from .forms import PlanningUnitFamilyForm, SurveyLayerOrderForm
 
 class SurveyQuestionOptionsInline(nested_admin.NestedTabularInline):
     model = SurveyQuestionOption
@@ -24,8 +24,9 @@ class PlanningUnitQuestionOptionsInline(nested_admin.NestedTabularInline):
     
 class LayerOrderInline(nested_admin.NestedTabularInline):
     model = SurveyLayerOrder
-    extra = 3
+    extra = 1
     classes = ['collapse', 'show']
+    form = SurveyLayerOrderForm
 
 class LayerGroupsInline(nested_admin.NestedStackedInline):
     model = SurveyLayerGroup
