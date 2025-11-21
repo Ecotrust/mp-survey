@@ -39,18 +39,21 @@ class SurveyQuestionsInline(nested_admin.NestedStackedInline):
     extra = 3
     classes = ['collapse', 'show']
     inlines = [SurveyQuestionOptionsInline]
+    exclude = ('collect_other',)
 
 class ScenarioQuestionsInline(nested_admin.NestedStackedInline):
     model = ScenarioQuestion
     extra = 3
     classes = ['collapse', 'show']
     inlines = [ScenarioQuestionOptionsInline]
+    exclude = ('collect_other',)
 
 class PlanningUnitQuestionsInline(nested_admin.NestedStackedInline):
     model = PlanningUnitQuestion
     extra = 3
     classes = ['collapse', 'show']
     inlines = [PlanningUnitQuestionOptionsInline]
+    exclude = ('collect_other',)
 
 class ScenarioInline(nested_admin.NestedStackedInline):
     model = Scenario
