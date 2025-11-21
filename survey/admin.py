@@ -64,6 +64,7 @@ class SurveyAdmin(nested_admin.NestedModelAdmin):
     search_fields = ('name', 'description')
     ordering = ('-created_at',)
     inlines = [LayerGroupsInline, SurveyQuestionsInline, ScenarioInline]
+    exclude = ('allow_multiple_responses',)
 
 class PlanningUnitFamilyAdmin(admin.ModelAdmin):
     list_display = ('name', 'description')
