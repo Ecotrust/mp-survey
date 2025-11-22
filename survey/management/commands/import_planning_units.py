@@ -185,7 +185,7 @@ class Command(BaseCommand):
             try:
                 geometry = feature_data["geometry"]
                 if geometry.geom_type == "Polygon":
-                    geometry = MultiPolygon(geometry)
+                    geometry = MultiPolygon(geometry, srid=geometry.srid)
 
                 # Create the planning unit without attributes
                 planning_unit = PlanningUnit.objects.create(
