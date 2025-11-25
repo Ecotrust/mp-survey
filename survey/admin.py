@@ -66,7 +66,6 @@ class ScenarioInline(nested_admin.NestedStackedInline):
 class SurveyForm(forms.ModelForm):
     class Meta:
         model = Survey
-        fields = '__all__'
         exclude = ('allow_multiple_responses',)
         widgets = {
             'groups': admin.widgets.FilteredSelectMultiple('Groups', is_stacked=False),
