@@ -1,3 +1,4 @@
+from django import forms
 from django.contrib import admin
 import nested_admin
 from .models import (
@@ -39,18 +40,21 @@ class SurveyQuestionsInline(nested_admin.NestedStackedInline):
     extra = 3
     classes = ['collapse', 'show']
     inlines = [SurveyQuestionOptionsInline]
+    exclude = ('collect_other',)
 
 class ScenarioQuestionsInline(nested_admin.NestedStackedInline):
     model = ScenarioQuestion
     extra = 3
     classes = ['collapse', 'show']
     inlines = [ScenarioQuestionOptionsInline]
+    exclude = ('collect_other',)
 
 class PlanningUnitQuestionsInline(nested_admin.NestedStackedInline):
     model = PlanningUnitQuestion
     extra = 3
     classes = ['collapse', 'show']
     inlines = [PlanningUnitQuestionOptionsInline]
+    exclude = ('collect_other',)
 
 class ScenarioInline(nested_admin.NestedStackedInline):
     model = Scenario
@@ -59,11 +63,20 @@ class ScenarioInline(nested_admin.NestedStackedInline):
     classes = ['collapse', 'show']
     inlines = [ScenarioQuestionsInline, PlanningUnitQuestionsInline]
 
+class SurveyForm(forms.ModelForm):
+    class Meta:
+        model = Survey
+        exclude = ('allow_multiple_responses',)
+        widgets = {
+            'groups': admin.widgets.FilteredSelectMultiple('Groups', is_stacked=False),
+        }
+
 class SurveyAdmin(nested_admin.NestedModelAdmin):
     list_display = ('title', 'description', 'created_at', 'updated_at')
     search_fields = ('name', 'description')
     ordering = ('-created_at',)
     inlines = [LayerGroupsInline, SurveyQuestionsInline, ScenarioInline]
+    form = SurveyForm
 
 class PlanningUnitFamilyAdmin(admin.ModelAdmin):
     list_display = ('name', 'description')
