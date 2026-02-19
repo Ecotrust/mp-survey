@@ -243,7 +243,7 @@ function loadSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId) {
                     $('#id_scenario_'+app.survey.scenario.id+'_coin_assignment').on('change', app.survey.setCoinsAssigned);
                 }
                 if (data.jump_to_area_selection) {
-                    if (data.planning_units_geojson.length === 0) {
+                    if (data.planning_units_geojson.features.length === 0) {
                         app.survey.loadSurveyScenarioSpatialSelectionForm(data.response_id, data.scenario_id);
                     } else {
                         loadSurveyScenarioSpatialStatus(data.response_id, data.scenario_id);
@@ -414,6 +414,7 @@ app.survey.selectPlanningUnitListener = function(event) {
     if (selected_pu_feature) {
         if (selected_pu_feature.get('existing') === 'yes') {
             // console.log('This Planning Unit has already been selected.');
+            window.alert('This Planning Unit has already been assigned data. Please edit it separately if you want to make changes to it.');
             return;
         } else{
             app.survey.planningUnitLayer.getSource().removeFeature(selected_pu_feature);
