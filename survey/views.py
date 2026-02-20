@@ -490,15 +490,11 @@ def survey_scenario_area(request, response_id, scenario_id, unit_id=None, templa
                     'message': 'Error saving planning unit answers.'
                 }, status=500)
         else:
-            errors = form.errors
-            pu_key = 'scenario_{}_planning_unit_ids'.format(scenario_id)
-            if pu_key in form.errors.keys() and form.errors[pu_key] == ["This field is required."]:
-                errors[pu_key] = ["Please select an area on the map to continue."]
             return JsonResponse({
                 'status': 'error',
                 'status_code': 400,
                 'message': 'There were errors in the form.',
-                'errors': errors
+                'errors': form.errors
             }, status=400)
     else:
         scenario_status = response.scenario_status(scenario.pk)

@@ -129,7 +129,7 @@ function submitSurveyForm(url, successCallback) {
             error_keys = Object.keys(error.responseJSON['errors'])
             alert_text = error.responseJSON['message'] + '\n';
             for (let i = 0; i < error_keys.length; i++) {
-                alert_text += "- " +error.responseJSON['errors'][error_keys[i]].join(', ') + '\n';
+                alert_text += "- " + error.responseJSON['errors'][error_keys[i]].join(', ') + '\n';
             }
             window.alert(alert_text);
         }

@@ -239,13 +239,16 @@ class PlanningUnitForm(Form):
                     )
                     if len(existing_assignment) > 0:
                         allocated_coins = existing_assignment[0].coins_assigned
-                absolute_max_coins = min(scenario.max_coins_per_pu, available_coins)
+                if scenario.max_coins_per_pu is not None:
+                    absolute_max_coins = min(scenario.max_coins_per_pu, available_coins)
+                else:
+                    absolute_max_coins = available_coins
                 # tell user if there is a max cap on coins per PU and what it is
-                if scenario.min_coins_per_pu and scenario.max_coins_per_pu:
+                if scenario.min_coins_per_pu is not None and scenario.max_coins_per_pu is not None:
                     help_text = f'Assign between {scenario.min_coins_per_pu} and {absolute_max_coins} coins per area.'
-                elif scenario.max_coins_per_pu:
+                elif scenario.max_coins_per_pu is not None:
                     help_text = f'Assign up to {absolute_max_coins} coins per area.'
-                elif scenario.min_coins_per_pu:
+                elif scenario.min_coins_per_pu is not None:
                     help_text = f'Assign at least {scenario.min_coins_per_pu} coins per area.'
                 else:
                     help_text = None
@@ -284,14 +287,14 @@ class PlanningUnitForm(Form):
         # Validate that at least one planning unit is selected
         for key in self.fields.keys():
             # If the user didn't select ANY planning unit ids:
-            if key.endswith('_planning_unit_ids') and (key not in cleaned_data.keys() or not cleaned_data[key]):
+            if key.endswith('_planning_unit_ids') and (key not in cleaned_data or not cleaned_data[key]):
                 if key in self.errors.keys():
                     # This missing field was likely already caught by the default required field validation, so we remove that error message to replace with a more user-friendly one.
                     self.errors.pop(key)
                 self.add_error(key, 'Please select an area on the map to continue.')
             elif self.fields[key].required:
                 # If required field is missing:
-                if not key in cleaned_data.keys() or not cleaned_data[key]:
+                if key not in cleaned_data or not cleaned_data[key]:
                     self.add_error(key, '{}: This field is required.'.format(self.fields[key].label))
                 # If a required CHOICE field has a value that means 'None' (e.g. 'Select an option'):
                 elif type(self.fields[key]) in [ChoiceField,] and len(self.fields[key].choices) > 0:

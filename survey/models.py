@@ -444,7 +444,7 @@ class SurveyResponse(models.Model):
                     )
                 )
                 if scenario.require_all_coins_used and scenario_status['coins_assigned'] != scenario.total_coins:
-                    scenario_status['coins_completed'] =False
+                    scenario_status['coins_completed'] = False
         if scenario_status['planning_unit_questions_completed'] is None:
             scenario_status['planning_unit_questions_completed'] = True
         if scenario_status['coins_completed'] is None:
