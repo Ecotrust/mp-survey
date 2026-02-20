@@ -125,8 +125,13 @@ function submitSurveyForm(url, successCallback) {
         headers: { 'X-CSRFToken': csrftoken },
         data: $('#myplanner-survey-dialog-body form').serialize(),
         success: successCallback,
-        error: function() {
-            window.alert('Error saving survey responses. Please try again.');
+        error: function(error) {
+            error_keys = Object.keys(error.responseJSON['errors'])
+            alert_text = error.responseJSON['message'] + '\n';
+            for (let i = 0; i < error_keys.length; i++) {
+                alert_text += "- " +error.responseJSON['errors'][error_keys[i]].join(', ') + '\n';
+            }
+            window.alert(alert_text);
         }
     });
 }
