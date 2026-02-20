@@ -294,7 +294,7 @@ class PlanningUnitForm(Form):
                 if not key in cleaned_data.keys() or not cleaned_data[key]:
                     self.add_error(key, '{}: This field is required.'.format(self.fields[key].label))
                 # If a required CHOICE field has a value that means 'None' (e.g. 'Select an option'):
-                if type(self.fields[key]) in [ChoiceField,] and len(self.fields[key].choices) > 0:
+                elif type(self.fields[key]) in [ChoiceField,] and len(self.fields[key].choices) > 0:
                     answer_text = [x[1] for x in self.fields[key].choices if str(cleaned_data[key]) == str(x[0])][0]
                     if str(answer_text).lower() in choices_meaning_none:
                         self.add_error(key, '{}: This field is required.'.format(self.fields[key].label))
