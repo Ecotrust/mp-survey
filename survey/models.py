@@ -437,14 +437,14 @@ class SurveyResponse(models.Model):
                 for question in required_pu_questions:
                     if not self.planningunitanswer_response.filter(question=question, planning_unit=pu).exists():
                         scenario_status['planning_unit_questions_completed'] = False
-            if scenario.is_weighted and scenario.require_all_coins_used:
+            if scenario.is_weighted:
                 scenario_status['coins_assigned'] = sum(
                     ca.coins_assigned for ca in self.coin_assignments_response.filter(
                         scenario=scenario
                     )
                 )
-                if scenario_status['coins_assigned'] != scenario.total_coins:
-                    scenario_status['coins_completed'] =False
+                if scenario.require_all_coins_used and scenario_status['coins_assigned'] != scenario.total_coins:
+                    scenario_status['coins_completed'] = False
         if scenario_status['planning_unit_questions_completed'] is None:
             scenario_status['planning_unit_questions_completed'] = True
         if scenario_status['coins_completed'] is None:

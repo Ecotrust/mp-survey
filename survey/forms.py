@@ -5,6 +5,7 @@ from django.forms import ModelForm, Form
 from tempfile import NamedTemporaryFile
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.forms.fields import IntegerField, CharField, ChoiceField, MultipleChoiceField, BooleanField, DateField
 from layers.models import Layer
 from .models import (
     SurveyResponse, SurveyQuestion, SurveyAnswer, SurveyQuestionOption,
@@ -229,7 +230,7 @@ class PlanningUnitForm(Form):
         if scenario:
             if scenario.is_weighted:
                 available_coins = response.scenario_status(scenario.id)['coins_available']
-                allocated_coins = 0
+                allocated_coins = scenario.min_coins_per_pu
                 if unit_id is not None:
                     existing_assignment = CoinAssignment.objects.filter(
                         response=response,
@@ -238,11 +239,25 @@ class PlanningUnitForm(Form):
                     )
                     if len(existing_assignment) > 0:
                         allocated_coins = existing_assignment[0].coins_assigned
+                if scenario.max_coins_per_pu is not None:
+                    absolute_max_coins = min(scenario.max_coins_per_pu, available_coins)
+                else:
+                    absolute_max_coins = available_coins
+                # tell user if there is a max cap on coins per PU and what it is
+                if scenario.min_coins_per_pu is not None and scenario.max_coins_per_pu is not None:
+                    help_text = f'Assign between {scenario.min_coins_per_pu} and {absolute_max_coins} coins per area.'
+                elif scenario.max_coins_per_pu is not None:
+                    help_text = f'Assign up to {absolute_max_coins} coins per area.'
+                elif scenario.min_coins_per_pu is not None:
+                    help_text = f'Assign at least {scenario.min_coins_per_pu} coins per area.'
+                else:
+                    help_text = None
                 self.fields['scenario_{}_coin_assignment'.format(scenario.id)] = forms.IntegerField(
                     label='Assign Coins (Available: {})'.format(available_coins),
-                    min_value=0,
-                    max_value=available_coins+allocated_coins,
-                    initial=allocated_coins
+                    min_value=scenario.min_coins_per_pu,
+                    max_value=absolute_max_coins,
+                    initial=allocated_coins,
+                    help_text=help_text
                 )
 
             self.fields['scenario_{}_planning_unit_ids'.format(scenario.id)] = forms.CharField(
@@ -261,6 +276,35 @@ class PlanningUnitForm(Form):
                     initial_answer = None
 
                 populate_question_fields(self, question, field_name, initial_answer)
+
+    def clean(self):
+        # It's important for 'select' fields to have a meaningful label even on the 'None' option:
+        # This is the list of values that will count as 'None' if matched. 
+        choices_meaning_none = ['none', '', 'select', 'select one', 'select an option']
+        # This is the list of values that will count as 'None' if found ANYWHERE in the answer string.
+        partial_match_meaning_none = ['-----',]
+        cleaned_data = super().clean()
+        # Validate that at least one planning unit is selected
+        for key in self.fields.keys():
+            # If the user didn't select ANY planning unit ids:
+            if key.endswith('_planning_unit_ids') and (key not in cleaned_data or not cleaned_data[key]):
+                if key in self.errors.keys():
+                    # This missing field was likely already caught by the default required field validation, so we remove that error message to replace with a more user-friendly one.
+                    self.errors.pop(key)
+                self.add_error(key, 'Please select an area on the map to continue.')
+            elif self.fields[key].required:
+                # If required field is missing:
+                if key not in cleaned_data or not cleaned_data[key]:
+                    self.add_error(key, '{}: This field is required.'.format(self.fields[key].label))
+                # If a required CHOICE field has a value that means 'None' (e.g. 'Select an option'):
+                elif type(self.fields[key]) in [ChoiceField,] and len(self.fields[key].choices) > 0:
+                    answer_text = [x[1] for x in self.fields[key].choices if str(cleaned_data[key]) == str(x[0])][0]
+                    if str(answer_text).lower() in choices_meaning_none:
+                        self.add_error(key, '{}: This field is required.'.format(self.fields[key].label))
+                    elif any(partial in str(answer_text).lower() for partial in partial_match_meaning_none):
+                        self.add_error(key, '{}: This field is required.'.format(self.fields[key].label))
+
+        return cleaned_data
 
     def save_answers(self, response, scenario):
         """

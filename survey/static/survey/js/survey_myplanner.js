@@ -125,8 +125,13 @@ function submitSurveyForm(url, successCallback) {
         headers: { 'X-CSRFToken': csrftoken },
         data: $('#myplanner-survey-dialog-body form').serialize(),
         success: successCallback,
-        error: function() {
-            window.alert('Error saving survey responses. Please try again.');
+        error: function(error) {
+            error_keys = Object.keys(error.responseJSON['errors'])
+            alert_text = error.responseJSON['message'] + '\n';
+            for (let i = 0; i < error_keys.length; i++) {
+                alert_text += "- " + error.responseJSON['errors'][error_keys[i]].join(', ') + '\n';
+            }
+            window.alert(alert_text);
         }
     });
 }
@@ -243,7 +248,7 @@ function loadSurveyScenario(surveyId, responseId, scenarioId, nextScenarioId) {
                     $('#id_scenario_'+app.survey.scenario.id+'_coin_assignment').on('change', app.survey.setCoinsAssigned);
                 }
                 if (data.jump_to_area_selection) {
-                    if (data.planning_units_geojson.length === 0) {
+                    if (data.planning_units_geojson.features.length === 0) {
                         app.survey.loadSurveyScenarioSpatialSelectionForm(data.response_id, data.scenario_id);
                     } else {
                         loadSurveyScenarioSpatialStatus(data.response_id, data.scenario_id);
@@ -414,6 +419,7 @@ app.survey.selectPlanningUnitListener = function(event) {
     if (selected_pu_feature) {
         if (selected_pu_feature.get('existing') === 'yes') {
             // console.log('This Planning Unit has already been selected.');
+            window.alert('This Planning Unit has already been assigned data. Please edit it separately if you want to make changes to it.');
             return;
         } else{
             app.survey.planningUnitLayer.getSource().removeFeature(selected_pu_feature);
