@@ -457,7 +457,6 @@ class SurveyResponse(models.Model):
         scenario_status['areas_selected'] = self.coin_assignments_response.filter(scenario=scenario).count()
         return scenario_status
 
-    
     def scenarios_status(self):
         scenario_status = {}
         for scenario in self.survey.get_scenarios():
@@ -465,6 +464,59 @@ class SurveyResponse(models.Model):
         return scenario_status
     
     # def response_status(self):
+    def response_as_json(self):
+        response_data = {
+            'id': self.id,
+            'survey': self.survey.id,
+            'user': self.user.username,
+            'user_id': self.user.id,
+            'submitted_at': self.submitted_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+            'completed': self.completed,
+            'scenarios': {} # should this be a list?
+        }
+        for scenario in self.survey.get_scenarios():
+            scenario_data = {
+                'id': scenario.id,
+                'name': scenario.name,
+                'status': self.scenario_status(scenario.id),
+                'answers': []
+            }
+            scenario_answers = self.scenarioanswer_response.filter(question__scenario=scenario)
+            for answer in scenario_answers:
+                scenario_data['answers'].append({
+                    'question_id': answer.question.id,
+                    'question_text': answer.question.text,
+                    'value': answer.value
+                })
+            if scenario.is_spatial:
+                pu_answers = self.planningunitanswer_response.filter(question__scenario=scenario)
+                scenario_data['planning_units'] = {}
+                # scenario_data['planning_unit_answers'] = []
+                for pu_answer in pu_answers:
+                    if pu_answer.planning_unit.id not in scenario_data['planning_units'].keys():
+                        scenario_data['planning_units'][pu_answer.planning_unit.id] = {
+                            'id': pu_answer.planning_unit.id,
+                            'geometry': pu_answer.planning_unit.geometry.geojson if pu_answer.planning_unit.geometry else None,
+                            'answers': {}
+                        }
+                        if scenario.is_weighted:
+                            coin_assignment = self.coin_assignments_response.get(
+                                response=self,
+                                scenario=scenario,
+                                planning_unit=pu_answer.planning_unit
+                            )
+                            scenario_data['planning_units'][pu_answer.planning_unit.id]['coins_assigned'] = coin_assignment.coins_assigned if coin_assignment else 0
+                    scenario_data['planning_units'][pu_answer.planning_unit.id]['answers'][pu_answer.question.id] = {
+                        'question_id': pu_answer.question.id,
+                        'order': pu_answer.question.order,
+                        'question_text': pu_answer.question.text,
+                        'value': pu_answer.value,
+                    }
+                     
+                    # scenario_data['planning_unit_answers'].append(pu_answer_data)
+            response_data['scenarios'][scenario.id] = scenario_data
+        return response_data
 
 
     class Meta:
