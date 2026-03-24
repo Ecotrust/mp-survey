@@ -539,7 +539,6 @@ class SurveyResponse(models.Model):
         for scenario_id in data['scenarios'].keys():
             scenario = Scenario.objects.get(id=scenario_id)
             if scenario.is_spatial:
-                # pu_answers = self.planningunitanswer_response.filter(question__scenario=scenario)
                 for pu_id in data['scenarios'][scenario_id]['planning_units'].keys():
                     pu = data['scenarios'][scenario_id]['planning_units'][pu_id]
                     feature = {
@@ -565,7 +564,6 @@ class SurveyResponse(models.Model):
                     geojson['features'].append(feature)
         return geojson
 
-
     class Meta:
         verbose_name = "Survey Response"
         verbose_name_plural = "Survey Responses"
@@ -588,7 +586,7 @@ def get_answer_value(answer):
     
 def denormalize_answer_value(answer):
     if type(answer) == list:
-        return ",".join([x[1] for x in answer])
+        return ", ".join([x[1] for x in answer])
     else:
         return answer
 
