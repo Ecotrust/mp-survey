@@ -99,6 +99,9 @@ class PlanningUnitFamilyAdmin(admin.ModelAdmin):
         else:
             super().save_model(request, obj, form, change)
 
+# This admin action allows exporting a single survey response as a GeoJSON file, which includes the user's answers 
+# and the spatial data for any selected planning units in spatial scenarios. It checks that exactly one response is 
+# selected, converts it to GeoJSON format using the 'response_as_geojson' method, and returns it as a downloadable file.
 @admin.action(description="Export a response as GeoJSON")
 def export_as_geojson(self, request, queryset):
     import json

@@ -466,6 +466,8 @@ class SurveyResponse(models.Model):
         return scenario_status
     
     # def response_status(self):
+
+    # This function is used to convert the survey response into a JSON-serializable format, including all answers and metadata about the response.
     def response_as_json(self):
         response_data = {
             'id': self.id,
@@ -475,7 +477,7 @@ class SurveyResponse(models.Model):
             'submitted_at': self.submitted_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
             'completed': self.completed,
-            'scenarios': {} # should this be a list?
+            'scenarios': {}
         }
         for answer in self.surveyanswer_response.all().order_by('question__order'):
             if 'survey_answers' not in response_data.keys():
@@ -502,7 +504,6 @@ class SurveyResponse(models.Model):
             if scenario.is_spatial:
                 pu_answers = self.planningunitanswer_response.filter(question__scenario=scenario)
                 scenario_data['planning_units'] = {}
-                # scenario_data['planning_unit_answers'] = []
                 for pu_answer in pu_answers.order_by('question__order', 'planning_unit__id'):
                     if pu_answer.planning_unit.id not in scenario_data['planning_units'].keys():
                         geojson = pu_answer.planning_unit.geometry.geojson if pu_answer.planning_unit.geometry else None
@@ -530,6 +531,10 @@ class SurveyResponse(models.Model):
             response_data['scenarios'][scenario.id] = scenario_data
         return response_data
     
+    # This function converts the survey response into a GeoJSON format, where each selected planning unit in spatial scenarios 
+    # is represented as a GeoJSON feature with properties containing the user's answers and metadata about the response.
+    # This builds from 'response_as_json' by denormalizing the data and structuring it into a GeoJSON FeatureCollection format.
+    # This is used for the admin action 'export_as_geojson' to allow exporting individual responses as GeoJSON files.
     def response_as_geojson(self):
         geojson = {
             'type': 'FeatureCollection',
@@ -570,6 +575,7 @@ class SurveyResponse(models.Model):
         # This unique breaks the 'allow_multiple_responses' logic
         unique_together = ('survey', 'user')
 
+# This function is used to extract the answer value from an Answer object, handling different question types and answer formats.
 def get_answer_value(answer):
     if answer is None:
         return None
@@ -584,6 +590,8 @@ def get_answer_value(answer):
     else:
         return None
     
+# This function is used to convert the answer value into a more human-readable format for export and display purposes. 
+# For multiple choice questions, it converts the list of selected options into a comma-separated string of option texts.
 def denormalize_answer_value(answer):
     if type(answer) == list:
         return ", ".join([x[1] for x in answer])
