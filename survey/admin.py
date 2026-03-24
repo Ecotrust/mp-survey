@@ -99,6 +99,26 @@ class PlanningUnitFamilyAdmin(admin.ModelAdmin):
         else:
             super().save_model(request, obj, form, change)
 
+@admin.action(description="Export a response as GeoJSON")
+def export_as_geojson(self, request, queryset):
+    import json
+    from django.http import HttpResponse
+
+    if queryset.count() != 1:
+        self.message_user(request, "Please select exactly one response to export.")
+        return
+
+    for survey_response in queryset:
+        geojson = survey_response.response_as_geojson()
+    response = HttpResponse(json.dumps(geojson), content_type='application/json')
+    response['Content-Disposition'] = f'attachment; filename="survey_{survey_response.survey}_{survey_response.user}.geojson"'
+    return response
+
+class SurveyResponseAdmin(admin.ModelAdmin):
+    list_display = ('survey', 'user')
+    search_fields = ('survey__name', 'user__username')
+    ordering = ('-survey',)
+    actions = [export_as_geojson]
 
 
 # admin.site.register(SurveyQuestion)
@@ -109,6 +129,6 @@ class PlanningUnitFamilyAdmin(admin.ModelAdmin):
 # admin.site.register(Survey)
 # admin.site.register(QuestionSurveyAssociation)
 admin.site.register(PlanningUnitFamily, PlanningUnitFamilyAdmin)
-admin.site.register(SurveyResponse)
+admin.site.register(SurveyResponse, SurveyResponseAdmin)
 
 admin.site.register(Survey, SurveyAdmin)
