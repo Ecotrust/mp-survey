@@ -568,11 +568,11 @@ class SurveyResponse(models.Model):
                     }
                 }
                 for answer in data['survey_answers']:
-                    feature['properties'][f"suq_{slugify(str(answer['question_text']))}"] = answer['value']
+                    feature['properties'][f"suq_{answer['question_id']}_{slugify(str(answer['question_text']))}"] = answer['value']
                 for answer in scenario_data['answers']:
-                    feature['properties'][f"scq_{slugify(str(answer['question_text']))}"] = answer['value']
+                    feature['properties'][f"scq_{answer['question_id']}_{slugify(str(answer['question_text']))}"] = answer['value']
                 for answer in pu['answers'].values():
-                    feature['properties'][f"puq_{slugify(str(answer['question_text']))}"] = answer['value']
+                    feature['properties'][f"puq_{answer['question_id']}_{slugify(str(answer['question_text']))}"] = answer['value']
                 if scenario.is_weighted:
                     feature['properties']['coins_assigned'] = pu['coins_assigned']
                 geojson['features'].append(feature)
