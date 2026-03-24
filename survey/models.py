@@ -477,11 +477,10 @@ class SurveyResponse(models.Model):
             'submitted_at': self.submitted_at.isoformat(),
             'updated_at': self.updated_at.isoformat(),
             'completed': self.completed,
-            'scenarios': {}
+            'scenarios': {},
+            'survey_answers': []
         }
         for answer in self.surveyanswer_response.all().order_by('question__order'):
-            if 'survey_answers' not in response_data.keys():
-                response_data['survey_answers'] = []
             response_data['survey_answers'].append({
                 'question_id': answer.question.id,
                 'question_text': answer.question.text,
