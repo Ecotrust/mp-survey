@@ -477,7 +477,7 @@ class SurveyResponse(models.Model):
             'completed': self.completed,
             'scenarios': {} # should this be a list?
         }
-        for answer in self.surveyanswer_response.all():
+        for answer in self.surveyanswer_response.all().order_by('question__order'):
             if 'survey_answers' not in response_data.keys():
                 response_data['survey_answers'] = []
             response_data['survey_answers'].append({
@@ -492,7 +492,7 @@ class SurveyResponse(models.Model):
                 'status': self.scenario_status(scenario.id),
                 'answers': []
             }
-            scenario_answers = self.scenarioanswer_response.filter(question__scenario=scenario)
+            scenario_answers = self.scenarioanswer_response.filter(question__scenario=scenario).order_by('question__order')
             for answer in scenario_answers:
                 scenario_data['answers'].append({
                     'question_id': answer.question.id,
@@ -503,7 +503,7 @@ class SurveyResponse(models.Model):
                 pu_answers = self.planningunitanswer_response.filter(question__scenario=scenario)
                 scenario_data['planning_units'] = {}
                 # scenario_data['planning_unit_answers'] = []
-                for pu_answer in pu_answers:
+                for pu_answer in pu_answers.order_by('question__order', 'planning_unit__id'):
                     if pu_answer.planning_unit.id not in scenario_data['planning_units'].keys():
                         geojson = pu_answer.planning_unit.geometry.geojson if pu_answer.planning_unit.geometry else None
                         if type(geojson) == str:
