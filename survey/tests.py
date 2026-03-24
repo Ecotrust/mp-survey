@@ -932,3 +932,324 @@ class CoinAssignmentTests(TestCase):
                 coins_assigned=50
             )
 
+
+class SurveyResponseExportTests(TestCase):
+    """Tests for SurveyResponse.response_as_json and response_as_geojson export methods."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='exportuser',
+            password='testpass123'
+        )
+        self.survey = Survey.objects.create(title='Export Test Survey')
+        self.pu_family = PlanningUnitFamily.objects.create(name='Export PU Family')
+
+        polygon = Polygon(((0, 0), (0, 1), (1, 1), (1, 0), (0, 0)))
+        self.planning_unit = PlanningUnit.objects.create(
+            geometry=MultiPolygon(polygon)
+        )
+        self.planning_unit.family.add(self.pu_family)
+
+        # Spatial, weighted scenario
+        self.spatial_weighted_scenario = Scenario.objects.create(
+            name='Spatial Weighted',
+            survey=self.survey,
+            order=1,
+            pu_family=self.pu_family,
+            is_spatial=True,
+            is_weighted=True,
+            total_coins=100,
+        )
+        # Non-spatial scenario
+        self.non_spatial_scenario = Scenario.objects.create(
+            name='Non Spatial',
+            survey=self.survey,
+            order=2,
+            is_spatial=False,
+            is_weighted=False,
+        )
+
+        self.response = SurveyResponse.objects.create(
+            survey=self.survey,
+            user=self.user,
+        )
+
+    # ------------------------------------------------------------------ #
+    # response_as_json tests                                               #
+    # ------------------------------------------------------------------ #
+
+    def test_response_as_json_basic_structure(self):
+        """response_as_json returns required top-level keys."""
+        data = self.response.response_as_json()
+        for key in ('id', 'survey', 'user', 'user_id', 'submitted_at',
+                    'updated_at', 'completed', 'scenarios', 'survey_answers'):
+            self.assertIn(key, data)
+        self.assertEqual(data['survey'], self.survey.id)
+        self.assertEqual(data['user'], self.user.username)
+        self.assertEqual(data['user_id'], self.user.id)
+
+    def test_response_as_json_no_answers(self):
+        """response_as_json works correctly when no answers have been submitted."""
+        data = self.response.response_as_json()
+        self.assertEqual(data['survey_answers'], [])
+        # Both scenarios should appear in the output
+        self.assertIn(self.spatial_weighted_scenario.id, data['scenarios'])
+        self.assertIn(self.non_spatial_scenario.id, data['scenarios'])
+
+    def test_response_as_json_survey_answers(self):
+        """response_as_json includes survey-level answers."""
+        question = SurveyQuestion.objects.create(
+            survey=self.survey,
+            text='What is your name?',
+            order=1,
+            question_type='text',
+        )
+        SurveyAnswer.objects.create(
+            response=self.response,
+            question=question,
+            text_answer='Alice',
+        )
+        data = self.response.response_as_json()
+        self.assertEqual(len(data['survey_answers']), 1)
+        answer_entry = data['survey_answers'][0]
+        self.assertEqual(answer_entry['question_id'], question.id)
+        self.assertEqual(answer_entry['question_text'], 'What is your name?')
+        self.assertEqual(answer_entry['value'], 'Alice')
+
+    def test_response_as_json_scenario_answers(self):
+        """response_as_json includes scenario-level answers."""
+        question = ScenarioQuestion.objects.create(
+            scenario=self.spatial_weighted_scenario,
+            text='Rate this area',
+            order=1,
+            question_type='number',
+        )
+        ScenarioAnswer.objects.create(
+            response=self.response,
+            question=question,
+            numeric_answer=7,
+        )
+        data = self.response.response_as_json()
+        scenario_data = data['scenarios'][self.spatial_weighted_scenario.id]
+        self.assertEqual(len(scenario_data['answers']), 1)
+        self.assertEqual(scenario_data['answers'][0]['value'], 7)
+
+    def test_response_as_json_spatial_scenario_planning_units(self):
+        """response_as_json includes planning-unit answers for spatial scenarios."""
+        pu_question = PlanningUnitQuestion.objects.create(
+            scenario=self.spatial_weighted_scenario,
+            text='Why did you select this area?',
+            order=1,
+            question_type='text',
+        )
+        PlanningUnitAnswer.objects.create(
+            response=self.response,
+            question=pu_question,
+            planning_unit=self.planning_unit,
+            text_answer='Great habitat',
+        )
+        data = self.response.response_as_json()
+        scenario_data = data['scenarios'][self.spatial_weighted_scenario.id]
+        self.assertIn('planning_units', scenario_data)
+        self.assertIn(self.planning_unit.id, scenario_data['planning_units'])
+        pu_entry = scenario_data['planning_units'][self.planning_unit.id]
+        self.assertIn('geometry', pu_entry)
+        self.assertIn('answers', pu_entry)
+        answer_entry = pu_entry['answers'][pu_question.id]
+        self.assertEqual(answer_entry['value'], 'Great habitat')
+
+    def test_response_as_json_weighted_scenario_coin_assignment(self):
+        """response_as_json records coins_assigned for weighted scenarios."""
+        pu_question = PlanningUnitQuestion.objects.create(
+            scenario=self.spatial_weighted_scenario,
+            text='Why select?',
+            order=1,
+            question_type='text',
+        )
+        PlanningUnitAnswer.objects.create(
+            response=self.response,
+            question=pu_question,
+            planning_unit=self.planning_unit,
+            text_answer='Good area',
+        )
+        CoinAssignment.objects.create(
+            response=self.response,
+            scenario=self.spatial_weighted_scenario,
+            planning_unit=self.planning_unit,
+            coins_assigned=42,
+        )
+        data = self.response.response_as_json()
+        pu_entry = data['scenarios'][self.spatial_weighted_scenario.id]['planning_units'][self.planning_unit.id]
+        self.assertEqual(pu_entry['coins_assigned'], 42)
+
+    def test_response_as_json_non_spatial_scenario_has_no_planning_units_key(self):
+        """Non-spatial scenarios do not have a planning_units key."""
+        data = self.response.response_as_json()
+        scenario_data = data['scenarios'][self.non_spatial_scenario.id]
+        self.assertNotIn('planning_units', scenario_data)
+
+    # ------------------------------------------------------------------ #
+    # response_as_geojson tests                                            #
+    # ------------------------------------------------------------------ #
+
+    def test_response_as_geojson_structure(self):
+        """response_as_geojson returns a valid GeoJSON FeatureCollection."""
+        geojson = self.response.response_as_geojson()
+        self.assertEqual(geojson['type'], 'FeatureCollection')
+        self.assertIn('features', geojson)
+        self.assertIsInstance(geojson['features'], list)
+
+    def test_response_as_geojson_no_spatial_answers_empty_features(self):
+        """With no planning-unit answers the features list is empty."""
+        geojson = self.response.response_as_geojson()
+        self.assertEqual(geojson['features'], [])
+
+    def test_response_as_geojson_non_spatial_scenario_excluded(self):
+        """Non-spatial scenarios produce no GeoJSON features."""
+        sc_question = ScenarioQuestion.objects.create(
+            scenario=self.non_spatial_scenario,
+            text='General opinion',
+            order=1,
+            question_type='text',
+        )
+        ScenarioAnswer.objects.create(
+            response=self.response,
+            question=sc_question,
+            text_answer='Looks good',
+        )
+        geojson = self.response.response_as_geojson()
+        self.assertEqual(geojson['features'], [])
+
+    def test_response_as_geojson_feature_properties_metadata(self):
+        """Each feature carries the expected metadata properties."""
+        pu_question = PlanningUnitQuestion.objects.create(
+            scenario=self.spatial_weighted_scenario,
+            text='Why here?',
+            order=1,
+            question_type='text',
+        )
+        PlanningUnitAnswer.objects.create(
+            response=self.response,
+            question=pu_question,
+            planning_unit=self.planning_unit,
+            text_answer='Biodiversity',
+        )
+        geojson = self.response.response_as_geojson()
+        self.assertEqual(len(geojson['features']), 1)
+        props = geojson['features'][0]['properties']
+        self.assertEqual(props['user_id'], self.user.id)
+        self.assertEqual(props['username'], self.user.username)
+        self.assertEqual(props['response_id'], self.response.id)
+        self.assertEqual(props['survey_id'], self.survey.id)
+        self.assertEqual(props['scenario_id'], self.spatial_weighted_scenario.id)
+
+    def test_response_as_geojson_answer_fields_slugified(self):
+        """Answer fields in GeoJSON properties use slugified question text as part of the key."""
+        survey_question = SurveyQuestion.objects.create(
+            survey=self.survey,
+            text='Overall satisfaction',
+            order=1,
+            question_type='text',
+        )
+        SurveyAnswer.objects.create(
+            response=self.response,
+            question=survey_question,
+            text_answer='Very satisfied',
+        )
+        pu_question = PlanningUnitQuestion.objects.create(
+            scenario=self.spatial_weighted_scenario,
+            text='Why here?',
+            order=1,
+            question_type='text',
+        )
+        PlanningUnitAnswer.objects.create(
+            response=self.response,
+            question=pu_question,
+            planning_unit=self.planning_unit,
+            text_answer='Biodiversity',
+        )
+        geojson = self.response.response_as_geojson()
+        props = geojson['features'][0]['properties']
+        expected_survey_key = f"suq_{survey_question.id}_overall-satisfaction"
+        self.assertIn(expected_survey_key, props)
+        self.assertEqual(props[expected_survey_key], 'Very satisfied')
+        expected_pu_key = f"puq_{pu_question.id}_why-here"
+        self.assertIn(expected_pu_key, props)
+        self.assertEqual(props[expected_pu_key], 'Biodiversity')
+
+    def test_response_as_geojson_weighted_scenario_coins_assigned(self):
+        """Weighted scenarios expose coins_assigned on each feature."""
+        pu_question = PlanningUnitQuestion.objects.create(
+            scenario=self.spatial_weighted_scenario,
+            text='Reason',
+            order=1,
+            question_type='text',
+        )
+        PlanningUnitAnswer.objects.create(
+            response=self.response,
+            question=pu_question,
+            planning_unit=self.planning_unit,
+            text_answer='Wildlife corridor',
+        )
+        CoinAssignment.objects.create(
+            response=self.response,
+            scenario=self.spatial_weighted_scenario,
+            planning_unit=self.planning_unit,
+            coins_assigned=60,
+        )
+        geojson = self.response.response_as_geojson()
+        self.assertEqual(len(geojson['features']), 1)
+        props = geojson['features'][0]['properties']
+        self.assertIn('coins_assigned', props)
+        self.assertEqual(props['coins_assigned'], 60)
+
+    def test_response_as_geojson_non_weighted_scenario_no_coins_property(self):
+        """Non-weighted spatial scenarios do not expose coins_assigned."""
+        non_weighted_scenario = Scenario.objects.create(
+            name='Spatial Non-Weighted',
+            survey=self.survey,
+            order=3,
+            pu_family=self.pu_family,
+            is_spatial=True,
+            is_weighted=False,
+        )
+        pu_question = PlanningUnitQuestion.objects.create(
+            scenario=non_weighted_scenario,
+            text='Comment',
+            order=1,
+            question_type='text',
+        )
+        PlanningUnitAnswer.objects.create(
+            response=self.response,
+            question=pu_question,
+            planning_unit=self.planning_unit,
+            text_answer='Nice area',
+        )
+        geojson = self.response.response_as_geojson()
+        features = [
+            f for f in geojson['features']
+            if f['properties']['scenario_id'] == non_weighted_scenario.id
+        ]
+        self.assertEqual(len(features), 1)
+        self.assertNotIn('coins_assigned', features[0]['properties'])
+
+    def test_response_as_geojson_geometry_present(self):
+        """GeoJSON features include geometry from the planning unit."""
+        pu_question = PlanningUnitQuestion.objects.create(
+            scenario=self.spatial_weighted_scenario,
+            text='Why?',
+            order=1,
+            question_type='text',
+        )
+        PlanningUnitAnswer.objects.create(
+            response=self.response,
+            question=pu_question,
+            planning_unit=self.planning_unit,
+            text_answer='Rich fisheries',
+        )
+        geojson = self.response.response_as_geojson()
+        feature = geojson['features'][0]
+        self.assertIsNotNone(feature['geometry'])
+        self.assertIn('type', feature['geometry'])
+        self.assertIn('coordinates', feature['geometry'])
+

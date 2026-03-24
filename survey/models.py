@@ -2,6 +2,8 @@ from django.db import models
 from django.contrib.gis.db.models import MultiPolygonField
 from django.contrib.gis.geos import GEOSGeometry
 from django.conf import settings
+from django.utils.text import slugify
+import json
 
 class QuestionOption(models.Model):
     text = models.CharField(max_length=255)
@@ -457,7 +459,6 @@ class SurveyResponse(models.Model):
         scenario_status['areas_selected'] = self.coin_assignments_response.filter(scenario=scenario).count()
         return scenario_status
 
-    
     def scenarios_status(self):
         scenario_status = {}
         for scenario in self.survey.get_scenarios():
@@ -466,6 +467,116 @@ class SurveyResponse(models.Model):
     
     # def response_status(self):
 
+    # This function is used to convert the survey response into a JSON-serializable format, including all answers and metadata about the response.
+    def response_as_json(self):
+        response_data = {
+            'id': self.id,
+            'survey': self.survey.id,
+            'user': self.user.username,
+            'user_id': self.user.id,
+            'submitted_at': self.submitted_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+            'completed': self.completed,
+            'scenarios': {},
+            'survey_answers': []
+        }
+        for answer in self.surveyanswer_response.all().order_by('question__order'):
+            response_data['survey_answers'].append({
+                'question_id': answer.question.id,
+                'question_text': answer.question.text,
+                'value': denormalize_answer_value(answer.value)
+            })
+        for scenario in self.survey.get_scenarios():
+            scenario_data = {
+                'id': scenario.id,
+                'name': scenario.name,
+                'status': self.scenario_status(scenario.id),
+                'answers': []
+            }
+            scenario_answers = self.scenarioanswer_response.filter(question__scenario=scenario).order_by('question__order')
+            for answer in scenario_answers:
+                scenario_data['answers'].append({
+                    'question_id': answer.question.id,
+                    'question_text': answer.question.text,
+                    'value': denormalize_answer_value(answer.value)
+                })
+            if scenario.is_spatial:
+                pu_answers = self.planningunitanswer_response.filter(question__scenario=scenario)
+                scenario_data['planning_units'] = {}
+                for pu_answer in pu_answers.order_by('question__order', 'planning_unit__id'):
+                    if pu_answer.planning_unit.id not in scenario_data['planning_units'].keys():
+                        geojson = pu_answer.planning_unit.geometry.geojson if pu_answer.planning_unit.geometry else None
+                        if type(geojson) == str:
+                            geojson = json.loads(geojson)
+                        scenario_data['planning_units'][pu_answer.planning_unit.id] = {
+                            'id': pu_answer.planning_unit.id,
+                            'geometry': geojson,
+                            'answers': {},
+                        }
+                        coin_assignment = None
+                        if scenario.is_weighted:
+                            coin_assignment = self.coin_assignments_response.filter(
+                                response=self,
+                                scenario=scenario,
+                                planning_unit=pu_answer.planning_unit
+                            ).first()
+                        scenario_data['planning_units'][pu_answer.planning_unit.id]['coins_assigned'] = coin_assignment.coins_assigned if coin_assignment else None
+                    scenario_data['planning_units'][pu_answer.planning_unit.id]['answers'][pu_answer.question.id] = {
+                        'question_id': pu_answer.question.id,
+                        'order': pu_answer.question.order,
+                        'question_text': pu_answer.question.text,
+                        'value': denormalize_answer_value(pu_answer.value),
+                    }
+            response_data['scenarios'][scenario.id] = scenario_data
+        return response_data
+    
+    # This function converts the survey response into a GeoJSON format, where each selected planning unit in spatial scenarios 
+    # is represented as a GeoJSON feature with properties containing the user's answers and metadata about the response.
+    # This builds from 'response_as_json' by denormalizing the data and structuring it into a GeoJSON FeatureCollection format.
+    # This is used for the admin action 'export_as_geojson' to allow exporting individual responses as GeoJSON files.
+    def response_as_geojson(self):
+        geojson = {
+            'type': 'FeatureCollection',
+            'features': []
+        }
+        data = self.response_as_json()
+
+        # Build a lookup of scenarios for this survey to avoid N+1 queries and
+        # to gracefully handle scenarios that may have been deleted.
+        scenarios_by_id = {
+            str(scenario.id): scenario
+            for scenario in self.survey.get_scenarios()
+        }
+
+        for scenario_id, scenario_data in data['scenarios'].items():
+            scenario = scenarios_by_id.get(str(scenario_id))
+            # Skip scenarios that no longer exist or are not spatial
+            if scenario is None or not scenario.is_spatial:
+                continue
+
+            for pu_id, pu in scenario_data['planning_units'].items():
+                feature = {
+                    'type': 'Feature',
+                    'geometry': pu['geometry'],
+                    'properties': {
+                        'user_id': self.user.id,
+                        'username': self.user.username,
+                        'response_id': self.id,
+                        'survey_id': self.survey.id,
+                        'scenario_id': scenario.id,
+                        'planning_unit_id': pu_id,
+                    }
+                }
+                for answer in data['survey_answers']:
+                    feature['properties'][f"suq_{answer['question_id']}_{slugify(str(answer['question_text']))}"] = answer['value']
+                for answer in scenario_data['answers']:
+                    feature['properties'][f"scq_{answer['question_id']}_{slugify(str(answer['question_text']))}"] = answer['value']
+                for answer in pu['answers'].values():
+                    feature['properties'][f"puq_{answer['question_id']}_{slugify(str(answer['question_text']))}"] = answer['value']
+                if scenario.is_weighted:
+                    feature['properties']['coins_assigned'] = pu['coins_assigned']
+                geojson['features'].append(feature)
+        return geojson
 
     class Meta:
         verbose_name = "Survey Response"
@@ -473,6 +584,7 @@ class SurveyResponse(models.Model):
         # This unique breaks the 'allow_multiple_responses' logic
         unique_together = ('survey', 'user')
 
+# This function is used to extract the answer value from an Answer object, handling different question types and answer formats.
 def get_answer_value(answer):
     if answer is None:
         return None
@@ -486,6 +598,14 @@ def get_answer_value(answer):
         return answer.other_text_answer
     else:
         return None
+    
+# This function is used to convert the answer value into a more human-readable format for export and display purposes. 
+# For multiple choice questions, it converts the list of selected options into a comma-separated string of option texts.
+def denormalize_answer_value(answer):
+    if type(answer) == list:
+        return ", ".join([x[1] for x in answer])
+    else:
+        return answer
 
 class Answer(models.Model):
     response = models.ForeignKey(

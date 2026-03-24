@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin
+from django.utils.text import slugify
 import nested_admin
 from .models import (
     SurveyQuestionOption, ScenarioQuestionOption, PlanningUnitQuestionOption, 
@@ -99,6 +100,30 @@ class PlanningUnitFamilyAdmin(admin.ModelAdmin):
         else:
             super().save_model(request, obj, form, change)
 
+# This admin action allows exporting a single survey response as a GeoJSON file, which includes the user's answers 
+# and the spatial data for any selected planning units in spatial scenarios. It checks that exactly one response is 
+# selected, converts it to GeoJSON format using the 'response_as_geojson' method, and returns it as a downloadable file.
+@admin.action(description="Export a response as GeoJSON")
+def export_as_geojson(self, request, queryset):
+    import json
+    from django.http import HttpResponse
+
+    if queryset.count() != 1:
+        self.message_user(request, "Please select exactly one response to export.")
+        return
+
+    for survey_response in queryset:
+        geojson = survey_response.response_as_geojson()
+    response = HttpResponse(json.dumps(geojson), content_type='application/geo+json')
+    filename = f"survey_{slugify(str(survey_response.survey))}_user_{slugify(str(survey_response.user.username))}.geojson"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+class SurveyResponseAdmin(admin.ModelAdmin):
+    list_display = ('survey', 'user')
+    search_fields = ('survey__name', 'user__username')
+    ordering = ('-survey',)
+    actions = [export_as_geojson]
 
 
 # admin.site.register(SurveyQuestion)
@@ -109,6 +134,6 @@ class PlanningUnitFamilyAdmin(admin.ModelAdmin):
 # admin.site.register(Survey)
 # admin.site.register(QuestionSurveyAssociation)
 admin.site.register(PlanningUnitFamily, PlanningUnitFamilyAdmin)
-admin.site.register(SurveyResponse)
+admin.site.register(SurveyResponse, SurveyResponseAdmin)
 
 admin.site.register(Survey, SurveyAdmin)
