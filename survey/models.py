@@ -540,32 +540,42 @@ class SurveyResponse(models.Model):
             'features': []
         }
         data = self.response_as_json()
-        for scenario_id in data['scenarios'].keys():
-            scenario = Scenario.objects.get(id=scenario_id)
-            if scenario.is_spatial:
-                for pu_id in data['scenarios'][scenario_id]['planning_units'].keys():
-                    pu = data['scenarios'][scenario_id]['planning_units'][pu_id]
-                    feature = {
-                        'type': 'Feature',
-                        'geometry': pu['geometry'],
-                        'properties': {
-                            'user_id': self.user.id,
-                            'username': self.user.username,
-                            'response_id': self.id,
-                            'survey_id': self.survey.id,
-                            'scenario_id': scenario.id,
-                            'planning_unit_id': pu_id,
-                        }
+
+        # Build a lookup of scenarios for this survey to avoid N+1 queries and
+        # to gracefully handle scenarios that may have been deleted.
+        scenarios_by_id = {
+            str(scenario.id): scenario
+            for scenario in self.survey.get_scenarios()
+        }
+
+        for scenario_id, scenario_data in data['scenarios'].items():
+            scenario = scenarios_by_id.get(str(scenario_id))
+            # Skip scenarios that no longer exist or are not spatial
+            if scenario is None or not scenario.is_spatial:
+                continue
+
+            for pu_id, pu in scenario_data['planning_units'].items():
+                feature = {
+                    'type': 'Feature',
+                    'geometry': pu['geometry'],
+                    'properties': {
+                        'user_id': self.user.id,
+                        'username': self.user.username,
+                        'response_id': self.id,
+                        'survey_id': self.survey.id,
+                        'scenario_id': scenario.id,
+                        'planning_unit_id': pu_id,
                     }
-                    for answer in data['survey_answers']:
-                        feature['properties'][f"suq_{slugify(str(answer['question_text']))}"] = answer['value']
-                    for answer in data['scenarios'][scenario_id]['answers']:
-                        feature['properties'][f"scq_{slugify(str(answer['question_text']))}"] = answer['value']
-                    for answer in data['scenarios'][scenario_id]['planning_units'][pu_id]['answers'].values():
-                        feature['properties'][f"puq_{slugify(str(answer['question_text']))}"] = answer['value']
-                    if scenario.is_weighted:
-                        feature['properties']['coins_assigned'] = data['scenarios'][scenario_id]['planning_units'][pu_id]['coins_assigned']
-                    geojson['features'].append(feature)
+                }
+                for answer in data['survey_answers']:
+                    feature['properties'][f"suq_{slugify(str(answer['question_text']))}"] = answer['value']
+                for answer in scenario_data['answers']:
+                    feature['properties'][f"scq_{slugify(str(answer['question_text']))}"] = answer['value']
+                for answer in pu['answers'].values():
+                    feature['properties'][f"puq_{slugify(str(answer['question_text']))}"] = answer['value']
+                if scenario.is_weighted:
+                    feature['properties']['coins_assigned'] = pu['coins_assigned']
+                geojson['features'].append(feature)
         return geojson
 
     class Meta:
