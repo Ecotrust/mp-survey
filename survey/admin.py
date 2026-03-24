@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib import admin
+from django.utils.text import slugify
 import nested_admin
 from .models import (
     SurveyQuestionOption, ScenarioQuestionOption, PlanningUnitQuestionOption, 
@@ -114,7 +115,7 @@ def export_as_geojson(self, request, queryset):
     for survey_response in queryset:
         geojson = survey_response.response_as_geojson()
     response = HttpResponse(json.dumps(geojson), content_type='application/geo+json')
-    filename = f"survey_{survey_response.survey_id}_user_{survey_response.user_id}.geojson"
+    filename = f"survey_{slugify(str(survey_response.survey))}_user_{slugify(str(survey_response.user.username))}.geojson"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
