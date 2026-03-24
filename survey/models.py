@@ -515,11 +515,11 @@ class SurveyResponse(models.Model):
                         }
                         coin_assignment = None
                         if scenario.is_weighted:
-                            coin_assignment = self.coin_assignments_response.get(
+                            coin_assignment = self.coin_assignments_response.filter(
                                 response=self,
                                 scenario=scenario,
                                 planning_unit=pu_answer.planning_unit
-                            )
+                            ).first()
                         scenario_data['planning_units'][pu_answer.planning_unit.id]['coins_assigned'] = coin_assignment.coins_assigned if coin_assignment else None
                     scenario_data['planning_units'][pu_answer.planning_unit.id]['answers'][pu_answer.question.id] = {
                         'question_id': pu_answer.question.id,
