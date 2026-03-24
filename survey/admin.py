@@ -114,7 +114,8 @@ def export_as_geojson(self, request, queryset):
     for survey_response in queryset:
         geojson = survey_response.response_as_geojson()
     response = HttpResponse(json.dumps(geojson), content_type='application/json')
-    response['Content-Disposition'] = f'attachment; filename="survey_{survey_response.survey}_{survey_response.user}.geojson"'
+    filename = f"survey_{survey_response.survey_id}_user_{survey_response.user_id}.geojson"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 
 class SurveyResponseAdmin(admin.ModelAdmin):
