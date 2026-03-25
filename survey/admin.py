@@ -120,7 +120,7 @@ def export_as_geojson(self, request, queryset):
     return response
 
 class SurveyResponseAdmin(admin.ModelAdmin):
-    list_display = ('survey', 'user')
+    list_display = ('survey', 'user', 'submitted_at', 'updated_at')
     search_fields = ('survey__name', 'user__username')
     ordering = ('-survey',)
     actions = [export_as_geojson]
